@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Calculator, BookOpen, Users, Settings } from "lucide-react-native";
+import { Calculator, BookOpen, Users, Settings, CalendarDays } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
 import Colors from "@/constants/colors";
@@ -39,6 +39,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="planner"
+        options={{
+          title: "Producción",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <CalendarDays size={22} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="club"
         options={{
           title: "Club",
@@ -73,7 +84,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600" as const,
     letterSpacing: 0.3,
   },

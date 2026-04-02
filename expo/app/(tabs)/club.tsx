@@ -24,6 +24,9 @@ import {
   MapPin,
   Briefcase,
   User,
+  Bell,
+  Globe,
+  ArrowRightLeft,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -43,7 +46,8 @@ const REACTION_CONFIG: { type: ReactionType; emoji: string; label: string }[] = 
 
 export default function ClubScreen() {
   const router = useRouter();
-  const { posts, reactToPost, addPost, userProfile } = useAppStore();
+  const { posts, reactToPost, addPost, userProfile, notifications } = useAppStore();
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const [newPost, setNewPost] = useState("");
   const [postType, setPostType] = useState<PostType>("trabajo");
   const [showReactionsFor, setShowReactionsFor] = useState<string | null>(null);
@@ -135,19 +139,33 @@ export default function ClubScreen() {
             <Text style={styles.title}>Club del Panadero</Text>
             <Text style={styles.subtitle}>Colaboración y comunidad</Text>
           </View>
-          <TouchableOpacity
-            style={styles.profileBtn}
-            onPress={() => router.push("/profile/me" as never)}
-            activeOpacity={0.7}
-          >
-            {userProfile.avatar ? (
-              <Image source={{ uri: userProfile.avatar }} style={styles.profileBtnImg} />
-            ) : (
-              <View style={styles.profileBtnFallback}>
-                <User size={18} color={Colors.light.textInverse} />
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.notifBtn}
+              onPress={() => router.push("/notifications" as never)}
+              activeOpacity={0.7}
+            >
+              <Bell size={18} color={Colors.light.text} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.profileBtn}
+              onPress={() => router.push("/profile/me" as never)}
+              activeOpacity={0.7}
+            >
+              {userProfile.avatar ? (
+                <Image source={{ uri: userProfile.avatar }} style={styles.profileBtnImg} />
+              ) : (
+                <View style={styles.profileBtnFallback}>
+                  <User size={18} color={Colors.light.textInverse} />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -192,6 +210,27 @@ export default function ClubScreen() {
             </View>
             <ChevronRight size={18} color={Colors.light.textMuted} />
           </TouchableOpacity>
+
+          <View style={styles.quickLinks}>
+            <TouchableOpacity
+              style={styles.quickLink}
+              onPress={() => router.push("/community" as never)}
+              activeOpacity={0.7}
+            >
+              <Globe size={16} color={Colors.light.primary} />
+              <Text style={styles.quickLinkText}>Fórmulas públicas</Text>
+              <ChevronRight size={14} color={Colors.light.textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickLink}
+              onPress={() => router.push("/substitutes" as never)}
+              activeOpacity={0.7}
+            >
+              <ArrowRightLeft size={16} color={Colors.light.gold} />
+              <Text style={styles.quickLinkText}>Sustitutos</Text>
+              <ChevronRight size={14} color={Colors.light.textMuted} />
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.composer}>
             <View style={styles.composerTop}>
@@ -459,11 +498,42 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     marginTop: 2,
   },
+  headerRight: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  notifBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.card,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  notifBadge: {
+    position: "absolute" as const,
+    top: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.light.error,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  notifBadgeText: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: Colors.light.textInverse,
+  },
   profileBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    overflow: "hidden",
+    overflow: "hidden" as const,
     borderWidth: 2,
     borderColor: Colors.light.primary,
   },
@@ -477,6 +547,29 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary,
     alignItems: "center",
     justifyContent: "center",
+  },
+  quickLinks: {
+    flexDirection: "row" as const,
+    gap: 8,
+    marginBottom: 14,
+  },
+  quickLink: {
+    flex: 1,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    backgroundColor: Colors.light.card,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  quickLinkText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.text,
   },
   scrollContent: {
     paddingHorizontal: 20,

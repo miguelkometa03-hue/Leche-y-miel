@@ -7,6 +7,7 @@ import {
   TextInput,
   StyleSheet,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -188,6 +189,9 @@ export default function FormulasScreen() {
               onPress={() => router.push(`/ficha/${formula.id}`)}
               activeOpacity={0.7}
             >
+              {formula.imageUrl && (
+                <Image source={{ uri: formula.imageUrl }} style={styles.cardImage} />
+              )}
               <View style={styles.cardTop}>
                 <View style={styles.cardTitleRow}>
                   <View
@@ -415,16 +419,23 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.light.card,
     borderRadius: 14,
-    padding: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: Colors.light.border,
+    overflow: "hidden" as const,
+  },
+  cardImage: {
+    width: "100%",
+    height: 120,
+    backgroundColor: Colors.light.backgroundTertiary,
   },
   cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
   },
   cardTitleRow: {
     flexDirection: "row",
@@ -448,6 +459,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     marginBottom: 10,
+    paddingHorizontal: 16,
   },
   cardAreaBadge: {
     flexDirection: "row",
@@ -484,6 +496,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
     paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
     borderTopWidth: 1,
     borderTopColor: Colors.light.border,
   },

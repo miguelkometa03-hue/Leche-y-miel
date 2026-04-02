@@ -19,6 +19,9 @@ import {
   User,
   MapPin,
   Briefcase,
+  BarChart3,
+  ArrowRightLeft,
+  Globe,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -167,6 +170,58 @@ export default function SettingsScreen() {
               );
             })}
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FlaskConical size={16} color={Colors.light.primary} />
+            <Text style={styles.sectionTitle}>Herramientas</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={() => router.push("/price-history" as never)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.toolIcon, { backgroundColor: Colors.light.successMuted }]}>
+              <BarChart3 size={18} color={Colors.light.success} />
+            </View>
+            <View style={styles.toolInfo}>
+              <Text style={styles.toolTitle}>Historial de precios</Text>
+              <Text style={styles.toolDesc}>Seguimiento de costos de ingredientes</Text>
+            </View>
+            <ChevronRight size={16} color={Colors.light.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={() => router.push("/substitutes" as never)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.toolIcon, { backgroundColor: Colors.light.goldMuted }]}>
+              <ArrowRightLeft size={18} color={Colors.light.gold} />
+            </View>
+            <View style={styles.toolInfo}>
+              <Text style={styles.toolTitle}>Sustitutos de ingredientes</Text>
+              <Text style={styles.toolDesc}>Conversiones y equivalencias</Text>
+            </View>
+            <ChevronRight size={16} color={Colors.light.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={() => router.push("/community" as never)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.toolIcon, { backgroundColor: Colors.light.waterMuted }]}>
+              <Globe size={18} color={Colors.light.water} />
+            </View>
+            <View style={styles.toolInfo}>
+              <Text style={styles.toolTitle}>Fórmulas de la comunidad</Text>
+              <Text style={styles.toolDesc}>Descubre y descarga recetas públicas</Text>
+            </View>
+            <ChevronRight size={16} color={Colors.light.textMuted} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -425,5 +480,36 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     lineHeight: 20,
     textAlign: "center",
+  },
+  toolCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.light.card,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    gap: 12,
+  },
+  toolIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toolInfo: {
+    flex: 1,
+  },
+  toolTitle: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: Colors.light.text,
+  },
+  toolDesc: {
+    fontSize: 12,
+    color: Colors.light.textMuted,
+    marginTop: 1,
   },
 });

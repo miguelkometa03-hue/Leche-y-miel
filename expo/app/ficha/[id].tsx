@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -27,12 +28,15 @@ import {
   Wheat,
   CakeSlice,
   Printer,
+  Camera,
 } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
 
+import * as ImagePicker from "expo-image-picker";
+
 import Colors from "@/constants/colors";
-import { formatCurrency } from "@/constants/appConfig";
+import { formatCurrency, getCurrencyConfig } from "@/constants/appConfig";
 import useAppStore from "@/store/useAppStore";
 import { formatDuration, formatDecimal } from "@/utils/formulaEngine";
 
@@ -102,15 +106,39 @@ export default function FichaDetailScreen() {
     }
   }, [formula, generateShareText]);
 
+  const generateProfessionalHTML = useCallback(() => {
+    if (!formula) return "";
+    const cc = getCurrencyConfig(currency);
+    const totalTime = formula.steps.reduce((sum, s) => sum + s.duration, 0);
+    const margin = formula.profitMargin ?? 2.5;
+    const suggestedPrice = formula.costPerUnit * margin;
+
+    const ingredientRows = formula.ingredients
+      .map(
+        (i) =>
+          `<tr><td style="padding:8px 12px;border-bottom:1px solid #2A2724;">${i.name}${i.isFlour ? ' <span style="color:#E8922F;font-size:10px;">HARINA</span>' : i.isLiquid ? ' <span style="color:#60A5FA;font-size:10px;">LÍQUIDO</span>' : ''}</td><td style="padding:8px 12px;border-bottom:1px solid #2A2724;text-align:right;color:#A09888;">${formatDecimal(i.percentage)}%</td><td style="padding:8px 12px;border-bottom:1px solid #2A2724;text-align:right;font-weight:600;">${i.grams.toFixed(1)}g</td><td style="padding:8px 12px;border-bottom:1px solid #2A2724;text-align:right;color:#4ADE80;">${cc.symbol}${i.cost.toFixed(cc.decimals)}</td></tr>`
+      )
+      .join("");
+
+    const stepsRows = formula.steps
+      .map(
+        (s, idx) =>
+          `<tr><td style="padding:8px 12px;border-bottom:1px solid #2A2724;width:30px;text-align:center;"><span style="background:#E8922F20;color:#E8922F;padding:2px 8px;border-radius:10px;font-weight:700;font-size:12px;">${idx + 1}</span></td><td style="padding:8px 12px;border-bottom:1px solid #2A2724;">${s.description}</td><td style="padding:8px 12px;border-bottom:1px solid #2A2724;text-align:right;color:#A09888;white-space:nowrap;">${s.duration > 0 ? formatDuration(s.duration) : "—"}</td><td style="padding:8px 12px;border-bottom:1px solid #2A2724;text-align:right;color:#FBBF24;white-space:nowrap;">${s.temperature ? s.temperature + "°C" : "—"}</td></tr>`
+      )
+      .join("");
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${formula.name} - Leche y Miel</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0D0D0D;color:#F5F0E8;padding:24px;max-width:800px;margin:0 auto}h1{font-size:28px;margin-bottom:4px}h2{font-size:14px;color:#E8922F;letter-spacing:1.5px;text-transform:uppercase;margin:24px 0 12px;border-bottom:2px solid #E8922F;padding-bottom:6px}.badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:1px}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:16px 0}.stat-box{background:#1A1A1A;border:1px solid #2A2724;border-radius:12px;padding:14px;text-align:center}.stat-value{font-size:20px;font-weight:700;color:#F5F0E8}.stat-label{font-size:11px;color:#A09888;margin-top:4px}table{width:100%;border-collapse:collapse;background:#1A1A1A;border:1px solid #2A2724;border-radius:12px;overflow:hidden;margin-bottom:16px}th{padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#A09888;background:#141414;border-bottom:2px solid #2A2724}.cost-highlight{background:#4ADE8020;border:1px solid #4ADE80;border-radius:12px;padding:16px;text-align:center;margin:16px 0}.cost-highlight .value{font-size:28px;font-weight:700;color:#4ADE80}.cost-highlight .label{font-size:12px;color:#A09888;margin-top:4px}.footer{text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #2A2724;color:#6B6560;font-size:12px}@media print{body{background:#fff;color:#111}table,th,.stat-box{background:#f9f9f9;border-color:#ddd;color:#111}th{background:#eee;color:#666}.badge{border:1px solid #ccc}.cost-highlight{background:#e8ffe8;border-color:#4ADE80}.stat-value,.cost-highlight .value{color:#111}.stat-label,.cost-highlight .label{color:#666}h2{color:#C67A1A}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px"><div><span class="badge" style="background:${formula.area === "panaderia" ? "#E8922F20" : "#FFB83020"};color:${formula.area === "panaderia" ? "#E8922F" : "#FFB830"};margin-bottom:8px;">${formula.area === "panaderia" ? "PANADERÍA" : "PASTELERÍA"}</span><h1>${formula.name}</h1>${formula.description ? `<p style="color:#A09888;margin-top:6px;">${formula.description}</p>` : ""}</div><div style="text-align:right;color:#A09888;font-size:12px;"><div>Leche y Miel</div><div style="margin-top:2px;">${new Date().toLocaleDateString()}</div></div></div><div class="stats-grid">${formula.area === "panaderia" && formula.hydration > 0 ? `<div class="stat-box"><div class="stat-value" style="color:#60A5FA;">${formula.hydration}%</div><div class="stat-label">Hidratación</div></div>` : ""}<div class="stat-box"><div class="stat-value">${formula.pieces}×${formula.weightPerPiece}g</div><div class="stat-label">Producción</div></div><div class="stat-box"><div class="stat-value">${(formula.totalWeight / 1000).toFixed(2)}kg</div><div class="stat-label">Peso total</div></div><div class="stat-box"><div class="stat-value">${totalTime > 0 ? formatDuration(totalTime) : "—"}</div><div class="stat-label">Tiempo total</div></div></div><h2>Ingredientes</h2><table><thead><tr><th style="text-align:left;">Ingrediente</th><th style="text-align:right;">%</th><th style="text-align:right;">Gramos</th><th style="text-align:right;">Costo</th></tr></thead><tbody>${ingredientRows}<tr style="background:#E8922F15;font-weight:700;"><td style="padding:10px 12px;">Total</td><td style="padding:10px 12px;text-align:right;">${formatDecimal(formula.ingredients.reduce((s, i) => s + i.percentage, 0))}%</td><td style="padding:10px 12px;text-align:right;">${formula.totalWeight.toFixed(0)}g</td><td style="padding:10px 12px;text-align:right;color:#4ADE80;">${cc.symbol}${formula.totalCost.toFixed(cc.decimals)}</td></tr></tbody></table>${formula.steps.length > 0 ? `<h2>Proceso</h2><table><thead><tr><th style="width:30px;text-align:center;">#</th><th>Descripción</th><th style="text-align:right;">Tiempo</th><th style="text-align:right;">Temp.</th></tr></thead><tbody>${stepsRows}</tbody></table>` : ""}<h2>Análisis de Costos</h2><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;"><div class="stat-box"><div class="stat-value" style="color:#4ADE80;font-size:16px;">${cc.symbol}${formula.totalCost.toFixed(cc.decimals)}</div><div class="stat-label">Costo total</div></div><div class="stat-box"><div class="stat-value" style="color:#4ADE80;font-size:16px;">${cc.symbol}${formula.costPerUnit.toFixed(cc.decimals)}</div><div class="stat-label">Costo/pieza</div></div><div class="stat-box"><div class="stat-value" style="color:#E8922F;font-size:16px;">×${margin.toFixed(1)}</div><div class="stat-label">Margen</div></div></div><div class="cost-highlight"><div class="label">Precio sugerido de venta</div><div class="value">${cc.symbol}${suggestedPrice.toFixed(cc.decimals)} /pieza</div><div class="label" style="margin-top:8px;">Ganancia estimada: ${cc.symbol}${(suggestedPrice * formula.pieces - formula.totalCost).toFixed(cc.decimals)} por lote</div></div><div class="footer">Ficha técnica generada por <strong>Leche y Miel</strong> — Herramienta profesional de formulación</div></body></html>`;
+  }, [formula, currency]);
+
   const handlePrint = useCallback(async () => {
     if (!formula) return;
     if (Platform.OS === "web") {
-      const text = generateShareText();
+      const html = generateProfessionalHTML();
       const printWindow = window.open("", "_blank");
       if (printWindow) {
-        printWindow.document.write(`<pre style="font-family: monospace; font-size: 14px; padding: 20px; white-space: pre-wrap;">${text}</pre>`);
+        printWindow.document.write(html);
         printWindow.document.close();
-        printWindow.print();
+        setTimeout(() => printWindow.print(), 300);
       }
     } else {
       const text = generateShareText();
@@ -120,7 +148,7 @@ export default function FichaDetailScreen() {
         console.log("[Ficha] Print/share cancelled");
       }
     }
-  }, [formula, generateShareText]);
+  }, [formula, generateShareText, generateProfessionalHTML]);
 
   const handleDelete = useCallback(() => {
     if (!formula) return;
@@ -136,6 +164,24 @@ export default function FichaDetailScreen() {
       },
     ]);
   }, [formula, deleteFormula, router]);
+
+  const handlePickImage = useCallback(async () => {
+    if (!formula) return;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        updateFormula(formula.id, { imageUrl: result.assets[0].uri });
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch {
+      console.log("[Ficha] Image picker error");
+    }
+  }, [formula, updateFormula]);
 
   const handleDuplicate = useCallback(() => {
     if (!formula) return;
@@ -247,6 +293,10 @@ export default function FichaDetailScreen() {
             </View>
           </View>
 
+          {formula.imageUrl && (
+            <Image source={{ uri: formula.imageUrl }} style={styles.heroImage} />
+          )}
+
           <View style={styles.hero}>
             <View
               style={[
@@ -348,6 +398,14 @@ export default function FichaDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickBtn}
+              onPress={handlePickImage}
+              activeOpacity={0.7}
+            >
+              <Camera size={16} color={Colors.light.primary} />
+              <Text style={styles.quickBtnText}>Foto</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.quickBtn}
               onPress={handleDuplicate}
               activeOpacity={0.7}
             >
@@ -360,9 +418,6 @@ export default function FichaDetailScreen() {
               activeOpacity={0.7}
             >
               <Trash2 size={16} color={Colors.light.error} />
-              <Text style={[styles.quickBtnText, { color: Colors.light.error }]}>
-                Eliminar
-              </Text>
             </TouchableOpacity>
           </View>
 
@@ -738,6 +793,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  heroImage: {
+    width: "100%",
+    height: 180,
+    marginHorizontal: 0,
+    backgroundColor: Colors.light.backgroundTertiary,
+  },
   hero: {
     backgroundColor: Colors.light.card,
     marginHorizontal: 16,
@@ -745,6 +806,7 @@ const styles = StyleSheet.create({
     padding: 22,
     borderWidth: 1,
     borderColor: Colors.light.border,
+    marginTop: -20,
   },
   areaBadge: {
     alignSelf: "flex-start",

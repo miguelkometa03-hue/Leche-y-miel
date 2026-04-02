@@ -27,6 +27,8 @@ export interface UserProfile {
   portfolio?: PortfolioItem[];
   socialLinks?: SocialLink[];
   subscription: SubscriptionTier;
+  followers: string[];
+  following: string[];
   createdAt: string;
 }
 
@@ -56,6 +58,7 @@ export interface SavedFormula {
   name: string;
   area: AreaType;
   description: string;
+  imageUrl?: string;
   ingredients: SavedIngredient[];
   steps: SavedStep[];
   pieces: number;
@@ -123,5 +126,71 @@ export interface PostComment {
   authorAvatar?: string;
   content: string;
   likes: number;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  type: "follow" | "reaction" | "comment" | "mention";
+  fromUserId: string;
+  fromUserName: string;
+  fromUserAvatar?: string;
+  message: string;
+  targetId?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface ProductionPlanItem {
+  id: string;
+  formulaId: string;
+  formulaName: string;
+  area: AreaType;
+  date: string;
+  pieces: number;
+  weightPerPiece: number;
+  totalWeight: number;
+  totalCost: number;
+  status: "pendiente" | "en_proceso" | "completado";
+  notes?: string;
+  createdAt: string;
+}
+
+export interface PriceHistoryEntry {
+  id: string;
+  ingredientName: string;
+  costPerKg: number;
+  date: string;
+  note?: string;
+}
+
+export interface ProductionHistoryEntry {
+  id: string;
+  formulaId: string;
+  formulaName: string;
+  date: string;
+  pieces: number;
+  totalCost: number;
+  totalWeight: number;
+  revenue?: number;
+}
+
+export interface IngredientSubstitute {
+  original: string;
+  substitute: string;
+  ratio: number;
+  notes: string;
+  category: string;
+}
+
+export interface CommunityFormula {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  formula: SavedFormula;
+  likes: number;
+  downloads: number;
+  userLiked: boolean;
   createdAt: string;
 }
