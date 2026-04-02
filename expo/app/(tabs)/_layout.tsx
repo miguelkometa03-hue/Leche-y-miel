@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Calculator, BookOpen, Users } from "lucide-react-native";
+import { Calculator, BookOpen, Users, Settings } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
 import Colors from "@/constants/colors";
@@ -45,6 +45,17 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
               <Users size={22} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Ajustes",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Settings size={22} color={color} />
             </View>
           ),
         }}

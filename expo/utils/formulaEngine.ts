@@ -9,6 +9,7 @@ export interface FormulaIngredient {
   isLiquid: boolean;
   costPerKg: number;
   locked: "percentage" | "grams" | "none";
+  inputMode: "percentage" | "grams";
 }
 
 export interface FormulaResult {
@@ -61,7 +62,7 @@ export function calculateBakeryFormula(
     return {
       id: ing.id,
       name: ing.name,
-      percentage: ing.percentage,
+      percentage: Math.round(ing.percentage * 100) / 100,
       grams: Math.round(grams * 10) / 10,
       cost: Math.round(cost * 100) / 100,
       isFlour: ing.isFlour,
@@ -76,7 +77,7 @@ export function calculateBakeryFormula(
   const flourGrams = calculated
     .filter((c) => c.isFlour)
     .reduce((sum, c) => sum + c.grams, 0);
-  const hydration = flourGrams > 0 ? Math.round((liquidGrams / flourGrams) * 100) : 0;
+  const hydration = flourGrams > 0 ? Math.round((liquidGrams / flourGrams) * 1000) / 10 : 0;
   const totalCost = calculated.reduce((sum, c) => sum + c.cost, 0);
 
   return {
@@ -84,7 +85,7 @@ export function calculateBakeryFormula(
     totalWeight: Math.round(actualTotal * 10) / 10,
     flourWeight: Math.round(flourGrams * 10) / 10,
     hydration,
-    totalPercentage,
+    totalPercentage: Math.round(totalPercentage * 100) / 100,
     totalCost: Math.round(totalCost * 100) / 100,
     costPerUnit: targetPieces > 0 ? Math.round((totalCost / targetPieces) * 100) / 100 : 0,
     weightPerUnit: targetPieces > 0 ? Math.round((actualTotal / targetPieces) * 10) / 10 : 0,
@@ -118,7 +119,7 @@ export function calculatePastryFormula(
     return {
       id: ing.id,
       name: ing.name,
-      percentage: ing.percentage,
+      percentage: Math.round(ing.percentage * 100) / 100,
       grams: Math.round(grams * 10) / 10,
       cost: Math.round(cost * 100) / 100,
       isFlour: ing.isFlour,
@@ -134,7 +135,7 @@ export function calculatePastryFormula(
     totalWeight: Math.round(actualTotal * 10) / 10,
     flourWeight: 0,
     hydration: 0,
-    totalPercentage,
+    totalPercentage: Math.round(totalPercentage * 100) / 100,
     totalCost: Math.round(totalCost * 100) / 100,
     costPerUnit: targetPieces > 0 ? Math.round((totalCost / targetPieces) * 100) / 100 : 0,
     weightPerUnit: targetPieces > 0 ? Math.round((actualTotal / targetPieces) * 10) / 10 : 0,
@@ -164,14 +165,14 @@ export function recalcPercentagesFromGrams(
     if (flourGrams === 0) return ingredients;
     return ingredients.map((ing) => ({
       ...ing,
-      percentage: Math.round((ing.grams / flourGrams) * 100 * 10) / 10,
+      percentage: Math.round((ing.grams / flourGrams) * 100 * 100) / 100,
     }));
   } else {
     const totalGrams = ingredients.reduce((sum, i) => sum + i.grams, 0);
     if (totalGrams === 0) return ingredients;
     return ingredients.map((ing) => ({
       ...ing,
-      percentage: Math.round((ing.grams / totalGrams) * 100 * 10) / 10,
+      percentage: Math.round((ing.grams / totalGrams) * 100 * 100) / 100,
     }));
   }
 }
@@ -186,6 +187,7 @@ export function createDefaultIngredient(_area: AreaType): FormulaIngredient {
     isLiquid: false,
     costPerKg: 0,
     locked: "none",
+    inputMode: "percentage",
   };
 }
 
@@ -199,6 +201,7 @@ export function createFlourIngredient(): FormulaIngredient {
     isLiquid: false,
     costPerKg: 1.5,
     locked: "none",
+    inputMode: "percentage",
   };
 }
 
@@ -212,6 +215,7 @@ export function createWaterIngredient(): FormulaIngredient {
     isLiquid: true,
     costPerKg: 0.01,
     locked: "none",
+    inputMode: "percentage",
   };
 }
 
@@ -241,4 +245,10 @@ export function formatDuration(minutes: number): string {
     return rh > 0 ? `${d}d ${rh}h` : `${d}d`;
   }
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
+}
+
+export function formatDecimal(value: number): string {
+  if (value === 0) return "";
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(2).replace(/\.?0+$/, "");
 }

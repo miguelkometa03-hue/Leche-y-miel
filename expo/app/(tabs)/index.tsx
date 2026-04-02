@@ -10,6 +10,7 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  AppState as RNAppState,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -28,8 +29,10 @@ import {
   FlaskConical,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { useLocalSearchParams } from "expo-router";
 
 import Colors from "@/constants/colors";
+import { formatCurrency, formatCurrencyPerKg } from "@/constants/appConfig";
 import useAppStore from "@/store/useAppStore";
 import type { AreaType, SavedFormula } from "@/types";
 import {
@@ -41,25 +44,51 @@ import {
   createWaterIngredient,
   createDefaultStep,
   formatDuration,
+  formatDecimal,
+  recalcPercentagesFromGrams,
 } from "@/utils/formulaEngine";
 import { ALL_FORMULAS, type PrebuiltFormula } from "@/mocks/formulas";
 
 export default function CalculatorScreen() {
-  const { addFormula } = useAppStore();
+  const { addFormula, updateFormula, formulas, currency, labDraft, setLabDraft } = useAppStore();
+  const params = useLocalSearchParams<{ editId?: string }>();
 
-  const [area, setArea] = useState<AreaType>("panaderia");
-  const [formulaName, setFormulaName] = useState("");
-  const [ingredients, setIngredients] = useState<FormulaIngredient[]>([
-    createFlourIngredient(),
-    createWaterIngredient(),
-  ]);
-  const [pieces, setPieces] = useState("10");
-  const [weightPerPiece, setWeightPerPiece] = useState("250");
-  const [steps, setSteps] = useState<ProcessStep[]>([]);
+  const [area, setArea] = useState<AreaType>(labDraft?.area ?? "panaderia");
+  const [formulaName, setFormulaName] = useState(labDraft?.formulaName ?? "");
+  const [ingredients, setIngredients] = useState<FormulaIngredient[]>(
+    labDraft?.ingredients ?? [createFlourIngredient(), createWaterIngredient()]
+  );
+  const [pieces, setPieces] = useState(labDraft?.pieces ?? "10");
+  const [weightPerPiece, setWeightPerPiece] = useState(labDraft?.weightPerPiece ?? "250");
+  const [steps, setSteps] = useState<ProcessStep[]>(labDraft?.steps ?? []);
   const [showSteps, setShowSteps] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [editingFormulaId, setEditingFormulaId] = useState<string | null>(labDraft?.editingFormulaId ?? null);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const loadFormulaForEdit = useCallback((formula: SavedFormula) => {
+    setEditingFormulaId(formula.id);
+    setFormulaName(formula.name);
+    setArea(formula.area);
+    setIngredients(
+      formula.ingredients.map((ing) => ({
+        id: ing.id,
+        name: ing.name,
+        percentage: ing.percentage,
+        grams: ing.grams,
+        isFlour: ing.isFlour,
+        isLiquid: ing.isLiquid,
+        costPerKg: ing.costPerKg,
+        locked: "none" as const,
+        inputMode: "percentage" as const,
+      }))
+    );
+    setPieces(String(formula.pieces));
+    setWeightPerPiece(String(formula.weightPerPiece));
+    setSteps(formula.steps.map((s) => ({ ...s })));
+    setShowSteps(formula.steps.length > 0);
+  }, []);
 
   const piecesNum = parseInt(pieces, 10) || 0;
   const weightNum = parseFloat(weightPerPiece) || 0;
@@ -67,6 +96,46 @@ export default function CalculatorScreen() {
   const result = useMemo(() => {
     return calculateFormula(area, ingredients, piecesNum, weightNum);
   }, [area, ingredients, piecesNum, weightNum]);
+
+  useEffect(() => {
+    if (params.editId && params.editId !== editingFormulaId) {
+      const formula = formulas.find((f) => f.id === params.editId);
+      if (formula) {
+        console.log("[Lab] Loading formula for edit:", formula.name);
+        loadFormulaForEdit(formula);
+      }
+    }
+  }, [params.editId, editingFormulaId, formulas, loadFormulaForEdit]);
+
+  useEffect(() => {
+    const saveDraft = () => {
+      console.log("[Lab] Saving draft...");
+      setLabDraft({
+        formulaName,
+        area,
+        ingredients,
+        pieces,
+        weightPerPiece,
+        steps,
+        editingFormulaId,
+        timestamp: Date.now(),
+      });
+    };
+
+    const sub = RNAppState.addEventListener("change", (state) => {
+      if (state === "background" || state === "inactive") {
+        saveDraft();
+      }
+    });
+
+    const interval = setInterval(saveDraft, 30000);
+
+    return () => {
+      sub.remove();
+      clearInterval(interval);
+      saveDraft();
+    };
+  }, [formulaName, area, ingredients, pieces, weightPerPiece, steps, editingFormulaId, setLabDraft]);
 
   useEffect(() => {
     if (result.totalWeight > 0) {
@@ -90,6 +159,7 @@ export default function CalculatorScreen() {
     setFormulaName("");
     setSteps([]);
     setShowSteps(false);
+    setEditingFormulaId(null);
   }, []);
 
   const handleAddIngredient = useCallback(() => {
@@ -108,10 +178,16 @@ export default function CalculatorScreen() {
         prev.map((ing) => {
           if (ing.id !== id) return ing;
           if (field === "percentage") {
-            return { ...ing, percentage: parseFloat(value as string) || 0 };
+            const parsed = parseFloat(value as string);
+            return { ...ing, percentage: isNaN(parsed) ? 0 : parsed };
+          }
+          if (field === "grams") {
+            const parsed = parseFloat(value as string);
+            return { ...ing, grams: isNaN(parsed) ? 0 : parsed };
           }
           if (field === "costPerKg") {
-            return { ...ing, costPerKg: parseFloat(value as string) || 0 };
+            const parsed = parseFloat(value as string);
+            return { ...ing, costPerKg: isNaN(parsed) ? 0 : parsed };
           }
           if (field === "isFlour" || field === "isLiquid") {
             return { ...ing, [field]: value as boolean };
@@ -125,6 +201,30 @@ export default function CalculatorScreen() {
     },
     []
   );
+
+  const handleGramsInput = useCallback(
+    (id: string, gramsStr: string) => {
+      const gramsVal = parseFloat(gramsStr) || 0;
+      setIngredients((prev) => {
+        const updated = prev.map((ing) =>
+          ing.id === id ? { ...ing, grams: gramsVal, inputMode: "grams" as const } : ing
+        );
+        return recalcPercentagesFromGrams(updated, area);
+      });
+    },
+    [area]
+  );
+
+  const handleToggleInputMode = useCallback((id: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIngredients((prev) =>
+      prev.map((ing) =>
+        ing.id === id
+          ? { ...ing, inputMode: ing.inputMode === "percentage" ? "grams" : "percentage" }
+          : ing
+      )
+    );
+  }, []);
 
   const handleToggleFlour = useCallback((id: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -170,6 +270,7 @@ export default function CalculatorScreen() {
   const handleReset = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setFormulaName("");
+    setEditingFormulaId(null);
     if (area === "panaderia") {
       setIngredients([createFlourIngredient(), createWaterIngredient()]);
     } else {
@@ -181,7 +282,8 @@ export default function CalculatorScreen() {
     setWeightPerPiece("250");
     setSteps([]);
     setShowSteps(false);
-  }, [area]);
+    setLabDraft(null);
+  }, [area, setLabDraft]);
 
   const handleSave = useCallback(() => {
     if (!formulaName.trim()) {
@@ -197,44 +299,66 @@ export default function CalculatorScreen() {
       return;
     }
 
-    const saved: SavedFormula = {
-      id: `formula-${Date.now()}`,
-      name: formulaName.trim(),
-      area,
-      description: "",
-      ingredients: result.ingredients.map((ci) => ({
-        id: ci.id,
-        name: ci.name,
-        percentage: ci.percentage,
-        grams: ci.grams,
-        cost: ci.cost,
-        isFlour: ci.isFlour,
-        isLiquid: ci.isLiquid,
-        costPerKg: ingredients.find((i) => i.id === ci.id)?.costPerKg ?? 0,
-      })),
-      steps,
-      pieces: piecesNum,
-      weightPerPiece: weightNum,
-      hydration: result.hydration,
-      totalWeight: result.totalWeight,
-      totalCost: result.totalCost,
-      costPerUnit: result.costPerUnit,
-      isFavorite: false,
-      tags: [area],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const savedIngredients = result.ingredients.map((ci) => ({
+      id: ci.id,
+      name: ci.name,
+      percentage: ci.percentage,
+      grams: ci.grams,
+      cost: ci.cost,
+      isFlour: ci.isFlour,
+      isLiquid: ci.isLiquid,
+      costPerKg: ingredients.find((i) => i.id === ci.id)?.costPerKg ?? 0,
+    }));
 
-    addFormula(saved);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Guardada", `"${formulaName}" guardada en tus fórmulas`);
+    if (editingFormulaId) {
+      updateFormula(editingFormulaId, {
+        name: formulaName.trim(),
+        area,
+        ingredients: savedIngredients,
+        steps,
+        pieces: piecesNum,
+        weightPerPiece: weightNum,
+        hydration: result.hydration,
+        totalWeight: result.totalWeight,
+        totalCost: result.totalCost,
+        costPerUnit: result.costPerUnit,
+        tags: [area],
+      });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Actualizada", `"${formulaName}" actualizada exitosamente`);
+    } else {
+      const saved: SavedFormula = {
+        id: `formula-${Date.now()}`,
+        name: formulaName.trim(),
+        area,
+        description: "",
+        ingredients: savedIngredients,
+        steps,
+        pieces: piecesNum,
+        weightPerPiece: weightNum,
+        hydration: result.hydration,
+        totalWeight: result.totalWeight,
+        totalCost: result.totalCost,
+        costPerUnit: result.costPerUnit,
+        isFavorite: false,
+        tags: [area],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      addFormula(saved);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Guardada", `"${formulaName}" guardada en tus fórmulas`);
+    }
+
+    setLabDraft(null);
     handleReset();
-  }, [formulaName, ingredients, result, area, steps, piecesNum, weightNum, addFormula, handleReset]);
+  }, [formulaName, ingredients, result, area, steps, piecesNum, weightNum, addFormula, updateFormula, editingFormulaId, handleReset, setLabDraft]);
 
   const handleLoadTemplate = useCallback((template: PrebuiltFormula) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setFormulaName(template.name);
     setArea(template.area);
+    setEditingFormulaId(null);
     setIngredients(
       template.ingredients.map((ing, idx) => ({
         id: `tmpl-${Date.now()}-${idx}`,
@@ -245,6 +369,7 @@ export default function CalculatorScreen() {
         isLiquid: ing.isLiquid,
         costPerKg: ing.costPerKg,
         locked: "none" as const,
+        inputMode: "percentage" as const,
       }))
     );
     setSteps(
@@ -264,6 +389,8 @@ export default function CalculatorScreen() {
     [area]
   );
 
+  const currencyLabel = formatCurrencyPerKg(currency);
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <KeyboardAvoidingView
@@ -273,7 +400,9 @@ export default function CalculatorScreen() {
         <View style={styles.topBar}>
           <View style={styles.topBarLeft}>
             <FlaskConical size={20} color={Colors.light.primary} />
-            <Text style={styles.appName}>LABORATORIO</Text>
+            <Text style={styles.appName}>
+              {editingFormulaId ? "EDITANDO" : "LABORATORIO"}
+            </Text>
           </View>
           <View style={styles.topBarActions}>
             <TouchableOpacity
@@ -299,6 +428,22 @@ export default function CalculatorScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {editingFormulaId && (
+            <View style={styles.editBanner}>
+              <Text style={styles.editBannerText}>
+                Editando fórmula existente
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingFormulaId(null);
+                  handleReset();
+                }}
+              >
+                <Text style={styles.editBannerCancel}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {showTemplates && (
             <View style={styles.templatesPanel}>
               <Text style={styles.templatesPanelTitle}>
@@ -406,16 +551,16 @@ export default function CalculatorScreen() {
               <Text style={[styles.ingColHeader, { flex: 1 }]}>
                 Ingrediente
               </Text>
-              <Text style={[styles.ingColHeader, styles.ingColCenter, { width: 55 }]}>
-                %
+              <Text style={[styles.ingColHeader, styles.ingColCenter, { width: 65 }]}>
+                % / g
               </Text>
-              <Text style={[styles.ingColHeader, styles.ingColCenter, { width: 40 }]}>
+              <Text style={[styles.ingColHeader, styles.ingColCenter, { width: 36 }]}>
                 Tipo
               </Text>
-              <Text style={[styles.ingColHeader, styles.ingColCenter, { width: 55 }]}>
-                $/kg
+              <Text style={[styles.ingColHeader, styles.ingColCenter, { width: 60 }]}>
+                {currencyLabel}
               </Text>
-              <View style={{ width: 32 }} />
+              <View style={{ width: 28 }} />
             </View>
 
             {ingredients.map((ing, idx) => (
@@ -427,16 +572,35 @@ export default function CalculatorScreen() {
                   placeholder="Nombre"
                   placeholderTextColor={Colors.light.textMuted}
                 />
-                <TextInput
-                  style={[styles.ingNumInput, { width: 55 }]}
-                  value={ing.percentage > 0 ? String(ing.percentage) : ""}
-                  onChangeText={(v) =>
-                    handleUpdateIngredient(ing.id, "percentage", v)
-                  }
-                  placeholder="0"
-                  placeholderTextColor={Colors.light.textMuted}
-                  keyboardType="decimal-pad"
-                />
+                <View style={styles.dualInputWrap}>
+                  <TextInput
+                    style={styles.ingNumInput}
+                    value={
+                      ing.inputMode === "grams"
+                        ? (ing.grams > 0 ? formatDecimal(ing.grams) : "")
+                        : (ing.percentage > 0 ? formatDecimal(ing.percentage) : "")
+                    }
+                    onChangeText={(v) => {
+                      if (ing.inputMode === "grams") {
+                        handleGramsInput(ing.id, v);
+                      } else {
+                        handleUpdateIngredient(ing.id, "percentage", v);
+                      }
+                    }}
+                    placeholder="0"
+                    placeholderTextColor={Colors.light.textMuted}
+                    keyboardType="decimal-pad"
+                  />
+                  <TouchableOpacity
+                    style={styles.modeToggle}
+                    onPress={() => handleToggleInputMode(ing.id)}
+                    hitSlop={4}
+                  >
+                    <Text style={styles.modeToggleText}>
+                      {ing.inputMode === "grams" ? "g" : "%"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.ingTypeCol}>
                   <TouchableOpacity
                     style={[
@@ -473,8 +637,8 @@ export default function CalculatorScreen() {
                   </TouchableOpacity>
                 </View>
                 <TextInput
-                  style={[styles.ingNumInput, { width: 55 }]}
-                  value={ing.costPerKg > 0 ? String(ing.costPerKg) : ""}
+                  style={[styles.ingNumInput, styles.costInput]}
+                  value={ing.costPerKg > 0 ? formatDecimal(ing.costPerKg) : ""}
                   onChangeText={(v) =>
                     handleUpdateIngredient(ing.id, "costPerKg", v)
                   }
@@ -503,8 +667,7 @@ export default function CalculatorScreen() {
 
             {area === "panaderia" && (
               <Text style={styles.typeHint}>
-                Toca el tipo: H = Harina, L = Líquido. Mantén presionado para
-                alternar a Líquido.
+                Toca tipo: H = Harina, L = Líquido. Mantén presionado → Líquido. Toca % / g para cambiar modo de entrada.
               </Text>
             )}
           </View>
@@ -578,16 +741,14 @@ export default function CalculatorScreen() {
                   <Text style={styles.statLabel}>Por pieza</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statCurrency}>$</Text>
-                  <Text style={styles.statValue}>
-                    {result.totalCost.toFixed(2)}
+                  <Text style={styles.statCurrency}>
+                    {formatCurrency(result.totalCost, currency)}
                   </Text>
                   <Text style={styles.statLabel}>Costo total</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statCurrency}>$</Text>
-                  <Text style={styles.statValue}>
-                    {result.costPerUnit.toFixed(2)}
+                  <Text style={styles.statCurrency}>
+                    {formatCurrency(result.costPerUnit, currency)}
                   </Text>
                   <Text style={styles.statLabel}>Costo/pieza</Text>
                 </View>
@@ -602,7 +763,7 @@ export default function CalculatorScreen() {
                   <Text style={[styles.rtHead, styles.rtRight, { width: 65 }]}>
                     Gramos
                   </Text>
-                  <Text style={[styles.rtHead, styles.rtRight, { width: 55 }]}>
+                  <Text style={[styles.rtHead, styles.rtRight, { width: 60 }]}>
                     Costo
                   </Text>
                 </View>
@@ -628,7 +789,7 @@ export default function CalculatorScreen() {
                         { width: 50 },
                       ]}
                     >
-                      {ci.percentage}%
+                      {formatDecimal(ci.percentage)}%
                     </Text>
                     <Text
                       style={[
@@ -645,17 +806,17 @@ export default function CalculatorScreen() {
                         styles.rtCell,
                         styles.rtRight,
                         styles.rtGreen,
-                        { width: 55 },
+                        { width: 60 },
                       ]}
                     >
-                      ${ci.cost.toFixed(2)}
+                      {formatCurrency(ci.cost, currency)}
                     </Text>
                   </View>
                 ))}
                 <View style={styles.resultTableTotal}>
                   <Text style={[styles.rtTotalText, { flex: 1 }]}>Total</Text>
                   <Text style={[styles.rtTotalText, styles.rtRight, { width: 50 }]}>
-                    {result.totalPercentage.toFixed(0)}%
+                    {formatDecimal(result.totalPercentage)}%
                   </Text>
                   <Text style={[styles.rtTotalText, styles.rtRight, { width: 65 }]}>
                     {result.totalWeight.toFixed(0)}g
@@ -665,10 +826,10 @@ export default function CalculatorScreen() {
                       styles.rtTotalText,
                       styles.rtRight,
                       styles.rtGreen,
-                      { width: 55 },
+                      { width: 60 },
                     ]}
                   >
-                    ${result.totalCost.toFixed(2)}
+                    {formatCurrency(result.totalCost, currency)}
                   </Text>
                 </View>
               </View>
@@ -678,7 +839,7 @@ export default function CalculatorScreen() {
                   Precio sugerido (×2.5)
                 </Text>
                 <Text style={styles.priceSuggestionValue}>
-                  ${(result.costPerUnit * 2.5).toFixed(2)} /pieza
+                  {formatCurrency(result.costPerUnit * 2.5, currency)} /pieza
                 </Text>
               </View>
             </Animated.View>
@@ -802,7 +963,9 @@ export default function CalculatorScreen() {
             testID="save-formula-button"
           >
             <Save size={18} color={Colors.light.textInverse} />
-            <Text style={styles.saveButtonText}>Guardar fórmula</Text>
+            <Text style={styles.saveButtonText}>
+              {editingFormulaId ? "Actualizar fórmula" : "Guardar fórmula"}
+            </Text>
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />
@@ -868,6 +1031,28 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+  },
+  editBanner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Colors.light.warningMuted,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.warning,
+  },
+  editBannerText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.light.warning,
+  },
+  editBannerCancel: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.light.error,
   },
   templatesPanel: {
     marginBottom: 12,
@@ -1007,21 +1192,51 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.light.text,
     fontWeight: "500" as const,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    minHeight: 32,
+  },
+  dualInputWrap: {
+    width: 65,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.light.backgroundTertiary,
+    borderRadius: 6,
+    overflow: "hidden",
   },
   ingNumInput: {
+    flex: 1,
     fontSize: 13,
     color: Colors.light.text,
     fontWeight: "600" as const,
     textAlign: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    minHeight: 32,
+  },
+  costInput: {
+    width: 60,
     backgroundColor: Colors.light.backgroundTertiary,
     borderRadius: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    minHeight: 32,
+  },
+  modeToggle: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderLeftWidth: 1,
+    borderLeftColor: Colors.light.border,
+    minHeight: 28,
+    justifyContent: "center",
+  },
+  modeToggleText: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: Colors.light.primary,
   },
   ingTypeCol: {
-    width: 40,
+    width: 36,
     alignItems: "center",
   },
   typeBadge: {
@@ -1050,8 +1265,8 @@ const styles = StyleSheet.create({
     color: Colors.light.water,
   },
   ingDeleteBtn: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1144,7 +1359,7 @@ const styles = StyleSheet.create({
     minWidth: 70,
     backgroundColor: Colors.light.backgroundSecondary,
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     alignItems: "center",
     gap: 4,
   },
@@ -1159,8 +1374,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   statCurrency: {
-    fontSize: 14,
-    fontWeight: "600" as const,
+    fontSize: 16,
+    fontWeight: "700" as const,
     color: Colors.light.success,
   },
   resultTable: {

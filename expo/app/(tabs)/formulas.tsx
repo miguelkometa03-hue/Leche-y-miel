@@ -20,19 +20,20 @@ import {
   Wheat,
   CakeSlice,
   Scale,
+  Edit3,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { formatCurrency } from "@/constants/appConfig";
 import useAppStore from "@/store/useAppStore";
-
 
 type FilterType = "todas" | "panaderia" | "pasteleria" | "favoritas";
 
 export default function FormulasScreen() {
   const router = useRouter();
-  const { formulas, toggleFavorite, deleteFormula, duplicateFormula } = useAppStore();
+  const { formulas, toggleFavorite, deleteFormula, duplicateFormula, currency } = useAppStore();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("todas");
 
@@ -85,6 +86,14 @@ export default function FormulasScreen() {
       }
     },
     [duplicateFormula]
+  );
+
+  const handleEdit = useCallback(
+    (id: string) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      router.push(`/?editId=${id}`);
+    },
+    [router]
   );
 
   const filters: { id: FilterType; label: string }[] = [
@@ -258,12 +267,23 @@ export default function FormulasScreen() {
                 <View style={{ flex: 1 }} />
 
                 <Text style={styles.cardPrice}>
-                  ${formula.totalCost.toFixed(2)}
+                  {formatCurrency(formula.totalCost, currency)}
                 </Text>
                 <ChevronRight size={16} color={Colors.light.textMuted} />
               </View>
 
               <View style={styles.cardActions}>
+                <TouchableOpacity
+                  style={styles.cardActionBtn}
+                  onPress={() => handleEdit(formula.id)}
+                  activeOpacity={0.7}
+                  hitSlop={4}
+                >
+                  <Edit3 size={13} color={Colors.light.primary} />
+                  <Text style={[styles.cardActionText, { color: Colors.light.primary }]}>
+                    Editar
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.cardActionBtn}
                   onPress={() => handleDuplicate(formula.id)}

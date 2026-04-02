@@ -8,6 +8,7 @@ import {
   Share,
   Alert,
   TextInput,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -25,18 +26,20 @@ import {
   X,
   Wheat,
   CakeSlice,
+  Printer,
 } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { formatCurrency } from "@/constants/appConfig";
 import useAppStore from "@/store/useAppStore";
-import { formatDuration } from "@/utils/formulaEngine";
+import { formatDuration, formatDecimal } from "@/utils/formulaEngine";
 
 export default function FichaDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { formulas, toggleFavorite, deleteFormula, duplicateFormula, updateFormula } =
+  const { formulas, toggleFavorite, deleteFormula, duplicateFormula, updateFormula, currency } =
     useAppStore();
   const [activeTab, setActiveTab] = useState<
     "ingredientes" | "proceso" | "costos"
@@ -67,20 +70,56 @@ export default function FichaDetailScreen() {
     setEditing(false);
   }, [formula, editName, editDesc, updateFormula]);
 
-  const handleShare = useCallback(async () => {
+  const handleEditInLab = useCallback(() => {
     if (!formula) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push(`/?editId=${formula.id}`);
+  }, [formula, router]);
+
+  const generateShareText = useCallback(() => {
+    if (!formula) return "";
     const ingredientsList = formula.ingredients
-      .map((i) => `  ${i.name}: ${i.grams.toFixed(1)}g (${i.percentage}%)`)
+      .map((i) => `  ${i.name}: ${i.grams.toFixed(1)}g (${formatDecimal(i.percentage)}%)`)
       .join("\n");
 
-    const text = `${formula.name}\n${formula.area === "panaderia" ? "Panadería" : "Pastelería"}\n${formula.hydration > 0 ? `Hidratación: ${formula.hydration}%\n` : ""}Piezas: ${formula.pieces} × ${formula.weightPerPiece}g\nPeso total: ${formula.totalWeight.toFixed(0)}g\n\nIngredientes:\n${ingredientsList}\n\nCosto total: $${formula.totalCost.toFixed(2)}\nCosto/pieza: $${formula.costPerUnit.toFixed(2)}\n\n— Leche y Miel`;
+    const stepsText = formula.steps.length > 0
+      ? "\n\nProceso:\n" + formula.steps.map((s, idx) =>
+        `  ${idx + 1}. ${s.description}${s.duration > 0 ? ` (${formatDuration(s.duration)})` : ""}${s.temperature ? ` ${s.temperature}°C` : ""}`
+      ).join("\n")
+      : "";
 
+    return `${formula.name}\n${formula.area === "panaderia" ? "Panadería" : "Pastelería"}\n${formula.hydration > 0 ? `Hidratación: ${formula.hydration}%\n` : ""}Piezas: ${formula.pieces} × ${formula.weightPerPiece}g\nPeso total: ${formula.totalWeight.toFixed(0)}g\n\nIngredientes:\n${ingredientsList}\n\nCosto total: ${formatCurrency(formula.totalCost, currency)}\nCosto/pieza: ${formatCurrency(formula.costPerUnit, currency)}\nPrecio sugerido (×2.5): ${formatCurrency(formula.costPerUnit * 2.5, currency)}/pieza${stepsText}\n\n— Leche y Miel`;
+  }, [formula, currency]);
+
+  const handleShare = useCallback(async () => {
+    if (!formula) return;
+    const text = generateShareText();
     try {
       await Share.share({ message: text, title: formula.name });
     } catch {
-      console.log("Share cancelled");
+      console.log("[Ficha] Share cancelled");
     }
-  }, [formula]);
+  }, [formula, generateShareText]);
+
+  const handlePrint = useCallback(async () => {
+    if (!formula) return;
+    if (Platform.OS === "web") {
+      const text = generateShareText();
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(`<pre style="font-family: monospace; font-size: 14px; padding: 20px; white-space: pre-wrap;">${text}</pre>`);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    } else {
+      const text = generateShareText();
+      try {
+        await Share.share({ message: text, title: `Ficha: ${formula.name}` });
+      } catch {
+        console.log("[Ficha] Print/share cancelled");
+      }
+    }
+  }, [formula, generateShareText]);
 
   const handleDelete = useCallback(() => {
     if (!formula) return;
@@ -166,6 +205,12 @@ export default function FichaDetailScreen() {
                     onPress={handleStartEdit}
                   >
                     <Edit3 size={18} color={Colors.light.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.headerBtn}
+                    onPress={handlePrint}
+                  >
+                    <Printer size={18} color={Colors.light.text} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.headerBtn}
@@ -291,6 +336,14 @@ export default function FichaDetailScreen() {
 
           <View style={styles.quickActions}>
             <TouchableOpacity
+              style={[styles.quickBtn, styles.quickBtnPrimary]}
+              onPress={handleEditInLab}
+              activeOpacity={0.7}
+            >
+              <Edit3 size={16} color={Colors.light.textInverse} />
+              <Text style={[styles.quickBtnText, { color: Colors.light.textInverse }]}>Editar en Lab</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.quickBtn}
               onPress={handleDuplicate}
               activeOpacity={0.7}
@@ -369,7 +422,7 @@ export default function FichaDetailScreen() {
                         { color: Colors.light.textMuted },
                       ]}
                     >
-                      {item.percentage}%
+                      {formatDecimal(item.percentage)}%
                     </Text>
                     <Text
                       style={[
@@ -387,7 +440,7 @@ export default function FichaDetailScreen() {
                         { color: Colors.light.success },
                       ]}
                     >
-                      ${item.cost.toFixed(2)}
+                      {formatCurrency(item.cost, currency)}
                     </Text>
                   </View>
                 ))}
@@ -406,7 +459,7 @@ export default function FichaDetailScreen() {
                       { color: Colors.light.success },
                     ]}
                   >
-                    ${formula.totalCost.toFixed(2)}
+                    {formatCurrency(formula.totalCost, currency)}
                   </Text>
                 </View>
               </View>
@@ -485,13 +538,13 @@ export default function FichaDetailScreen() {
                 <View style={styles.costRow}>
                   <Text style={styles.costLabel}>Costo ingredientes</Text>
                   <Text style={styles.costValue}>
-                    ${formula.totalCost.toFixed(2)}
+                    {formatCurrency(formula.totalCost, currency)}
                   </Text>
                 </View>
                 <View style={styles.costRow}>
                   <Text style={styles.costLabel}>Costo por pieza</Text>
                   <Text style={styles.costValue}>
-                    ${formula.costPerUnit.toFixed(2)}
+                    {formatCurrency(formula.costPerUnit, currency)}
                   </Text>
                 </View>
                 <View style={styles.costRow}>
@@ -504,7 +557,7 @@ export default function FichaDetailScreen() {
                     Precio sugerido (×2.5)
                   </Text>
                   <Text style={styles.costHighlightValue}>
-                    ${suggestedPrice.toFixed(2)} /pieza
+                    {formatCurrency(suggestedPrice, currency)} /pieza
                   </Text>
                 </View>
               </View>
@@ -512,15 +565,33 @@ export default function FichaDetailScreen() {
               <View style={[styles.card, styles.profitCard]}>
                 <Text style={styles.profitLabel}>Ganancia estimada</Text>
                 <Text style={styles.profitValue}>
-                  $
-                  {(
-                    suggestedPrice * formula.pieces -
-                    formula.totalCost
-                  ).toFixed(2)}
+                  {formatCurrency(
+                    suggestedPrice * formula.pieces - formula.totalCost,
+                    currency
+                  )}
                 </Text>
                 <Text style={styles.profitSub}>
                   por lote de {formula.pieces} piezas
                 </Text>
+              </View>
+
+              <View style={styles.shareActions}>
+                <TouchableOpacity
+                  style={styles.shareBtn}
+                  onPress={handleShare}
+                  activeOpacity={0.7}
+                >
+                  <Share2 size={16} color={Colors.light.textInverse} />
+                  <Text style={styles.shareBtnText}>Compartir ficha</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.printBtn}
+                  onPress={handlePrint}
+                  activeOpacity={0.7}
+                >
+                  <Printer size={16} color={Colors.light.primary} />
+                  <Text style={styles.printBtnText}>Imprimir</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -687,11 +758,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
   },
+  quickBtnPrimary: {
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
+  },
   quickBtnDanger: {
     borderColor: Colors.light.errorMuted,
   },
   quickBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600" as const,
     color: Colors.light.primary,
   },
@@ -756,7 +831,7 @@ const styles = StyleSheet.create({
   },
   tRight: {
     textAlign: "right",
-    width: 58,
+    width: 60,
   },
   tableRow: {
     flexDirection: "row",
@@ -915,5 +990,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.textSecondary,
     marginTop: 4,
+  },
+  shareActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  shareBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  shareBtnText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: Colors.light.textInverse,
+  },
+  printBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.light.card,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  printBtnText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: Colors.light.primary,
   },
 });

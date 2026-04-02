@@ -7,10 +7,26 @@ import type {
   User,
   AreaType,
 } from "@/types";
+import type { CurrencyCode } from "@/constants/appConfig";
+import type { FormulaIngredient, ProcessStep } from "@/utils/formulaEngine";
+
+export interface LabDraft {
+  formulaName: string;
+  area: AreaType;
+  ingredients: FormulaIngredient[];
+  pieces: string;
+  weightPerPiece: string;
+  steps: ProcessStep[];
+  editingFormulaId: string | null;
+  timestamp: number;
+}
 
 interface AppState {
   user: User | null;
   setUser: (user: User | null) => void;
+
+  currency: CurrencyCode;
+  setCurrency: (currency: CurrencyCode) => void;
 
   formulas: SavedFormula[];
   addFormula: (formula: SavedFormula) => void;
@@ -26,6 +42,9 @@ interface AppState {
 
   activeArea: AreaType;
   setActiveArea: (area: AreaType) => void;
+
+  labDraft: LabDraft | null;
+  setLabDraft: (draft: LabDraft | null) => void;
 }
 
 const initialFormulas: SavedFormula[] = [
@@ -151,6 +170,9 @@ export const useAppStore = create<AppState>()(
       },
       setUser: (user) => set({ user }),
 
+      currency: "USD" as CurrencyCode,
+      setCurrency: (currency) => set({ currency }),
+
       formulas: initialFormulas,
       addFormula: (formula) =>
         set((state) => ({ formulas: [formula, ...state.formulas] })),
@@ -203,14 +225,19 @@ export const useAppStore = create<AppState>()(
 
       activeArea: "panaderia",
       setActiveArea: (area) => set({ activeArea: area }),
+
+      labDraft: null,
+      setLabDraft: (draft) => set({ labDraft: draft }),
     }),
     {
-      name: "leche-y-miel-v2",
+      name: "leche-y-miel-v3",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         formulas: state.formulas,
         user: state.user,
         activeArea: state.activeArea,
+        currency: state.currency,
+        labDraft: state.labDraft,
       }),
     }
   )
