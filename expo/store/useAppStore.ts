@@ -4,8 +4,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type {
   SavedFormula,
   FeedPost,
-  User,
+  UserProfile,
   AreaType,
+  SubscriptionTier,
+  ReactionType,
+  PostComment,
+  Reaction,
 } from "@/types";
 import type { CurrencyCode } from "@/constants/appConfig";
 import type { FormulaIngredient, ProcessStep } from "@/utils/formulaEngine";
@@ -21,9 +25,21 @@ export interface LabDraft {
   timestamp: number;
 }
 
+function createDefaultReactions(): Reaction[] {
+  return [
+    { type: "like", count: 0, userReacted: false },
+    { type: "fire", count: 0, userReacted: false },
+    { type: "bread", count: 0, userReacted: false },
+    { type: "clap", count: 0, userReacted: false },
+  ];
+}
+
 interface AppState {
-  user: User | null;
-  setUser: (user: User | null) => void;
+  userProfile: UserProfile;
+  updateProfile: (updates: Partial<UserProfile>) => void;
+
+  subscription: SubscriptionTier;
+  setSubscription: (tier: SubscriptionTier) => void;
 
   currency: CurrencyCode;
   setCurrency: (currency: CurrencyCode) => void;
@@ -37,15 +53,55 @@ interface AppState {
 
   posts: FeedPost[];
   addPost: (post: FeedPost) => void;
-  likePost: (id: string) => void;
-  addComment: (postId: string, comment: FeedPost["comments"][0]) => void;
+  reactToPost: (postId: string, reactionType: ReactionType) => void;
+  addComment: (postId: string, comment: PostComment) => void;
+  likeComment: (postId: string, commentId: string) => void;
 
   activeArea: AreaType;
   setActiveArea: (area: AreaType) => void;
 
   labDraft: LabDraft | null;
   setLabDraft: (draft: LabDraft | null) => void;
+
+  // compat shims
+  user: UserProfile;
+  setUser: (user: UserProfile | null) => void;
+  likePost: (id: string) => void;
 }
+
+const defaultProfile: UserProfile = {
+  id: "user-1",
+  name: "Panadero",
+  email: "user@lecheymiel.app",
+  avatar: "https://i.pravatar.cc/150?u=juan",
+  bio: "Panadero artesanal apasionado por la fermentación natural",
+  specialty: "Panadería Artesanal",
+  location: "Mi ciudad",
+  phone: "",
+  website: "",
+  professionalTitle: "Maestro Panadero",
+  yearsExperience: 5,
+  certifications: ["Panadería Artesanal", "Masa Madre"],
+  portfolio: [
+    {
+      id: "p1",
+      imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400",
+      title: "Baguettes artesanales",
+      description: "Fermentación de 48h con masa madre",
+      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    },
+    {
+      id: "p2",
+      imageUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038024a?w=400",
+      title: "Pan de masa madre",
+      description: "Corteza caramelizada perfecta",
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    },
+  ],
+  socialLinks: [],
+  subscription: "free",
+  createdAt: new Date().toISOString(),
+};
 
 const initialFormulas: SavedFormula[] = [
   {
@@ -75,7 +131,9 @@ const initialFormulas: SavedFormula[] = [
     totalWeight: 1000,
     totalCost: 0.94,
     costPerUnit: 0.24,
+    profitMargin: 2.5,
     isFavorite: true,
+    isPublic: false,
     tags: ["clásico", "francés"],
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
     updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -105,7 +163,9 @@ const initialFormulas: SavedFormula[] = [
     totalWeight: 1000,
     totalCost: 2.55,
     costPerUnit: 2.55,
+    profitMargin: 3.0,
     isFavorite: false,
+    isPublic: false,
     tags: ["pastelería", "bizcocho"],
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -118,17 +178,35 @@ const initialPosts: FeedPost[] = [
     authorId: "user-2",
     authorName: "María Repostera",
     authorAvatar: "https://i.pravatar.cc/150?u=maria",
-    content: "¡Mi primera baguette con masa madre! 48h de fermentación fría. La miga quedó increíble.",
+    authorTitle: "Chef Pastelera · 8 años",
+    content: "¡Mi primera baguette con masa madre! 48h de fermentación fría. La miga quedó increíble 🍞",
     images: ["https://images.unsplash.com/photo-1597079910443-60c43fc4f729?w=400"],
     isHelpRequest: false,
-    likes: 47,
+    postType: "trabajo",
+    reactions: [
+      { type: "like", count: 32, userReacted: false },
+      { type: "fire", count: 15, userReacted: false },
+      { type: "bread", count: 8, userReacted: false },
+      { type: "clap", count: 5, userReacted: false },
+    ],
     comments: [
       {
         id: "c1",
         authorId: "user-3",
         authorName: "Carlos Artesano",
+        authorAvatar: "https://i.pravatar.cc/150?u=carlos",
         content: "¡Excelente oven spring! El corte vertical quedó perfecto.",
+        likes: 4,
         createdAt: new Date(Date.now() - 3600000).toISOString(),
+      },
+      {
+        id: "c1b",
+        authorId: "user-4",
+        authorName: "Ana Panadera",
+        authorAvatar: "https://i.pravatar.cc/150?u=ana",
+        content: "¿Cuántas horas en frío? Estoy experimentando con tiempos largos.",
+        likes: 2,
+        createdAt: new Date(Date.now() - 2400000).toISOString(),
       },
     ],
     createdAt: new Date(Date.now() - 7200000).toISOString(),
@@ -138,37 +216,81 @@ const initialPosts: FeedPost[] = [
     authorId: "user-3",
     authorName: "Carlos Artesano",
     authorAvatar: "https://i.pravatar.cc/150?u=carlos",
-    content: "Ayuda: Mi croissant se abre durante el horneado. Uso mantequilla 82% y temp 18°C. ¿Qué puede estar pasando?",
+    authorTitle: "Maestro Panadero · 12 años",
+    content: "Ayuda: Mi croissant se abre durante el horneado. Uso mantequilla 82% grasa y temp de masa 18°C para el laminado. ¿Qué puede estar pasando? ¿Alguien ha tenido este problema?",
     images: [],
     isHelpRequest: true,
-    likes: 23,
+    postType: "ayuda",
+    reactions: [
+      { type: "like", count: 12, userReacted: false },
+      { type: "fire", count: 0, userReacted: false },
+      { type: "bread", count: 3, userReacted: false },
+      { type: "clap", count: 0, userReacted: false },
+    ],
     comments: [
       {
         id: "c2",
         authorId: "user-4",
         authorName: "Ana Panadera",
-        content: "Revisa el sellado de los bordes al enrollar.",
+        authorAvatar: "https://i.pravatar.cc/150?u=ana",
+        content: "Revisa el sellado de los bordes al enrollar. También puede ser que la mantequilla esté muy fría y se rompa al estirar.",
+        likes: 7,
         createdAt: new Date(Date.now() - 1800000).toISOString(),
+      },
+      {
+        id: "c3",
+        authorId: "user-5",
+        authorName: "Luis Panadero",
+        authorAvatar: "https://i.pravatar.cc/150?u=luis",
+        content: "Prueba subir la temperatura del horno los primeros 5 minutos. 210°C y luego baja a 185°C.",
+        likes: 3,
+        createdAt: new Date(Date.now() - 900000).toISOString(),
       },
     ],
     createdAt: new Date(Date.now() - 14400000).toISOString(),
+  },
+  {
+    id: "p3",
+    authorId: "user-4",
+    authorName: "Ana Panadera",
+    authorAvatar: "https://i.pravatar.cc/150?u=ana",
+    authorTitle: "Panadera Artesanal · 6 años",
+    content: "¡Logro desbloqueado! Hoy completé mi certificación en panadería artesanal francesa. 6 meses de mucho esfuerzo pero valió cada minuto 🎓✨",
+    images: [],
+    isHelpRequest: false,
+    postType: "logro",
+    reactions: [
+      { type: "like", count: 45, userReacted: false },
+      { type: "fire", count: 22, userReacted: false },
+      { type: "clap", count: 30, userReacted: false },
+      { type: "bread", count: 10, userReacted: false },
+    ],
+    comments: [
+      {
+        id: "c4",
+        authorId: "user-2",
+        authorName: "María Repostera",
+        authorAvatar: "https://i.pravatar.cc/150?u=maria",
+        content: "¡Felicidades Ana! Te lo mereces, se nota tu dedicación en cada pan que compartes.",
+        likes: 8,
+        createdAt: new Date(Date.now() - 600000).toISOString(),
+      },
+    ],
+    createdAt: new Date(Date.now() - 28800000).toISOString(),
   },
 ];
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      user: {
-        id: "user-1",
-        name: "Panadero",
-        email: "user@lecheymiel.app",
-        avatar: "https://i.pravatar.cc/150?u=juan",
-        bio: "Panadero artesanal",
-        specialty: "Panadería",
-        location: "Mi ciudad",
-        createdAt: new Date().toISOString(),
-      },
-      setUser: (user) => set({ user }),
+      userProfile: defaultProfile,
+      updateProfile: (updates) =>
+        set((state) => ({
+          userProfile: { ...state.userProfile, ...updates },
+        })),
+
+      subscription: "free" as SubscriptionTier,
+      setSubscription: (tier) => set({ subscription: tier }),
 
       currency: "USD" as CurrencyCode,
       setCurrency: (currency) => set({ currency }),
@@ -210,16 +332,38 @@ export const useAppStore = create<AppState>()(
 
       posts: initialPosts,
       addPost: (post) => set((state) => ({ posts: [post, ...state.posts] })),
-      likePost: (id) =>
+      reactToPost: (postId, reactionType) =>
         set((state) => ({
-          posts: state.posts.map((p) =>
-            p.id === id ? { ...p, likes: p.likes + 1 } : p
-          ),
+          posts: state.posts.map((p) => {
+            if (p.id !== postId) return p;
+            const reactions = (p.reactions ?? createDefaultReactions()).map((r) => {
+              if (r.type !== reactionType) return r;
+              return {
+                ...r,
+                count: r.userReacted ? r.count - 1 : r.count + 1,
+                userReacted: !r.userReacted,
+              };
+            });
+            return { ...p, reactions };
+          }),
         })),
       addComment: (postId, comment) =>
         set((state) => ({
           posts: state.posts.map((p) =>
             p.id === postId ? { ...p, comments: [...p.comments, comment] } : p
+          ),
+        })),
+      likeComment: (postId, commentId) =>
+        set((state) => ({
+          posts: state.posts.map((p) =>
+            p.id === postId
+              ? {
+                  ...p,
+                  comments: p.comments.map((c) =>
+                    c.id === commentId ? { ...c, likes: c.likes + 1 } : c
+                  ),
+                }
+              : p
           ),
         })),
 
@@ -228,16 +372,26 @@ export const useAppStore = create<AppState>()(
 
       labDraft: null,
       setLabDraft: (draft) => set({ labDraft: draft }),
+
+      get user() {
+        return get().userProfile;
+      },
+      setUser: (user) => {
+        if (user) set((state) => ({ userProfile: { ...state.userProfile, ...user } }));
+      },
+      likePost: (id) => get().reactToPost(id, "like"),
     }),
     {
-      name: "leche-y-miel-v3",
+      name: "leche-y-miel-v4",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         formulas: state.formulas,
-        user: state.user,
+        userProfile: state.userProfile,
+        subscription: state.subscription,
         activeArea: state.activeArea,
         currency: state.currency,
         labDraft: state.labDraft,
+        posts: state.posts,
       }),
     }
   )

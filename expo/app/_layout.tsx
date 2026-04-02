@@ -30,6 +30,27 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="post/[id]"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="profile/[id]"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="subscription"
+        options={{
+          headerShown: false,
+          animation: "slide_from_bottom",
+        }}
+      />
+      <Stack.Screen
         name="modal"
         options={{
           presentation: "modal",

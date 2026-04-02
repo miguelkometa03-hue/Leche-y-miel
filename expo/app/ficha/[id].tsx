@@ -47,6 +47,7 @@ export default function FichaDetailScreen() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
+  const [marginMultiplier, setMarginMultiplier] = useState("");
 
   const formula = useMemo(
     () => formulas.find((f) => f.id === id),
@@ -165,7 +166,9 @@ export default function FichaDetailScreen() {
   }
 
   const totalTime = formula.steps.reduce((sum, s) => sum + s.duration, 0);
-  const suggestedPrice = formula.costPerUnit * 2.5;
+  const currentMargin = marginMultiplier ? parseFloat(marginMultiplier) : (formula.profitMargin ?? 2.5);
+  const effectiveMargin = isNaN(currentMargin) || currentMargin <= 0 ? 2.5 : currentMargin;
+  const suggestedPrice = formula.costPerUnit * effectiveMargin;
 
   return (
     <>
@@ -535,6 +538,7 @@ export default function FichaDetailScreen() {
             <View style={styles.section}>
               <View style={styles.card}>
                 <Text style={styles.cardLabel}>ANÁLISIS DE COSTOS</Text>
+
                 <View style={styles.costRow}>
                   <Text style={styles.costLabel}>Costo ingredientes</Text>
                   <Text style={styles.costValue}>
@@ -551,10 +555,66 @@ export default function FichaDetailScreen() {
                   <Text style={styles.costLabel}>Piezas producidas</Text>
                   <Text style={styles.costValue}>{formula.pieces}</Text>
                 </View>
+                <View style={styles.costRow}>
+                  <Text style={styles.costLabel}>Costo por kg</Text>
+                  <Text style={styles.costValue}>
+                    {formula.totalWeight > 0
+                      ? formatCurrency((formula.totalCost / formula.totalWeight) * 1000, currency)
+                      : "—"}
+                  </Text>
+                </View>
+
                 <View style={styles.costDivider} />
+
+                <View style={styles.costIngBreakdown}>
+                  <Text style={styles.costIngBreakdownTitle}>DESGLOSE POR INGREDIENTE</Text>
+                  {formula.ingredients.map((ing, idx) => (
+                    <View key={ing.id + String(idx)} style={styles.costIngRow}>
+                      <Text style={styles.costIngName} numberOfLines={1}>{ing.name}</Text>
+                      <View style={styles.costIngBarWrap}>
+                        <View
+                          style={[
+                            styles.costIngBar,
+                            {
+                              width: `${formula.totalCost > 0 ? Math.max(4, (ing.cost / formula.totalCost) * 100) : 0}%` as `${number}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.costIngAmount}>
+                        {formatCurrency(ing.cost, currency)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.costDivider} />
+
+                <View style={styles.marginSection}>
+                  <Text style={styles.marginLabel}>Margen de ganancia</Text>
+                  <View style={styles.marginInputRow}>
+                    <Text style={styles.marginX}>×</Text>
+                    <TextInput
+                      style={styles.marginInput}
+                      value={marginMultiplier || String(formula.profitMargin ?? 2.5)}
+                      onChangeText={(v) => {
+                        setMarginMultiplier(v);
+                        const parsed = parseFloat(v);
+                        if (!isNaN(parsed) && parsed > 0) {
+                          updateFormula(formula.id, { profitMargin: parsed });
+                        }
+                      }}
+                      keyboardType="decimal-pad"
+                      placeholder="2.5"
+                      placeholderTextColor={Colors.light.textMuted}
+                    />
+                    <Text style={styles.marginHint}>del costo</Text>
+                  </View>
+                </View>
+
                 <View style={styles.costHighlight}>
                   <Text style={styles.costHighlightLabel}>
-                    Precio sugerido (×2.5)
+                    Precio sugerido (×{effectiveMargin.toFixed(1)})
                   </Text>
                   <Text style={styles.costHighlightValue}>
                     {formatCurrency(suggestedPrice, currency)} /pieza
@@ -573,6 +633,29 @@ export default function FichaDetailScreen() {
                 <Text style={styles.profitSub}>
                   por lote de {formula.pieces} piezas
                 </Text>
+                <View style={styles.profitBreakdown}>
+                  <View style={styles.profitBreakdownItem}>
+                    <Text style={styles.profitBreakdownLabel}>Ingreso total</Text>
+                    <Text style={styles.profitBreakdownValue}>
+                      {formatCurrency(suggestedPrice * formula.pieces, currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.profitBreakdownItem}>
+                    <Text style={styles.profitBreakdownLabel}>Costo total</Text>
+                    <Text style={[styles.profitBreakdownValue, { color: Colors.light.error }]}>
+                      -{formatCurrency(formula.totalCost, currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.profitBreakdownDivider} />
+                  <View style={styles.profitBreakdownItem}>
+                    <Text style={styles.profitBreakdownLabel}>Margen %</Text>
+                    <Text style={styles.profitBreakdownValue}>
+                      {formula.totalCost > 0
+                        ? Math.round(((suggestedPrice * formula.pieces - formula.totalCost) / (suggestedPrice * formula.pieces)) * 100)
+                        : 0}%
+                    </Text>
+                  </View>
+                </View>
               </View>
 
               <View style={styles.shareActions}>
@@ -990,6 +1073,107 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.textSecondary,
     marginTop: 4,
+  },
+  profitBreakdown: {
+    width: "100%",
+    marginTop: 16,
+    gap: 6,
+  },
+  profitBreakdownItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  profitBreakdownLabel: {
+    fontSize: 13,
+    color: Colors.light.textSecondary,
+  },
+  profitBreakdownValue: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.light.success,
+  },
+  profitBreakdownDivider: {
+    height: 1,
+    backgroundColor: Colors.light.success,
+    opacity: 0.3,
+    marginVertical: 4,
+  },
+  costIngBreakdown: {
+    gap: 8,
+    marginBottom: 4,
+  },
+  costIngBreakdownTitle: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: Colors.light.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  costIngRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  costIngName: {
+    width: 90,
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+  },
+  costIngBarWrap: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.light.backgroundTertiary,
+    overflow: "hidden",
+  },
+  costIngBar: {
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: Colors.light.primary,
+  },
+  costIngAmount: {
+    width: 55,
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.text,
+    textAlign: "right",
+  },
+  marginSection: {
+    marginBottom: 8,
+  },
+  marginLabel: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+    marginBottom: 8,
+  },
+  marginInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  marginX: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: Colors.light.primary,
+  },
+  marginInput: {
+    width: 70,
+    backgroundColor: Colors.light.backgroundTertiary,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: Colors.light.primary,
+    textAlign: "center",
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  marginHint: {
+    fontSize: 12,
+    color: Colors.light.textMuted,
   },
   shareActions: {
     flexDirection: "row",
