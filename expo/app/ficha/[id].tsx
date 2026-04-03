@@ -102,7 +102,6 @@ export default function FichaDetailScreen() {
     try {
       await Share.share({ message: text, title: formula.name });
     } catch {
-      console.log("[Ficha] Share cancelled");
     }
   }, [formula, generateShareText]);
 
@@ -145,7 +144,6 @@ export default function FichaDetailScreen() {
       try {
         await Share.share({ message: text, title: `Ficha: ${formula.name}` });
       } catch {
-        console.log("[Ficha] Print/share cancelled");
       }
     }
   }, [formula, generateShareText, generateProfessionalHTML]);
@@ -179,7 +177,6 @@ export default function FichaDetailScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch {
-      console.log("[Ficha] Image picker error");
     }
   }, [formula, updateFormula]);
 

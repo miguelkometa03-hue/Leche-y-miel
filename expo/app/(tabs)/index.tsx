@@ -101,7 +101,6 @@ export default function CalculatorScreen() {
     if (params.editId && params.editId !== editingFormulaId) {
       const formula = formulas.find((f) => f.id === params.editId);
       if (formula) {
-        console.log("[Lab] Loading formula for edit:", formula.name);
         loadFormulaForEdit(formula);
       }
     }
@@ -109,7 +108,6 @@ export default function CalculatorScreen() {
 
   useEffect(() => {
     const saveDraft = () => {
-      console.log("[Lab] Saving draft...");
       setLabDraft({
         formulaName,
         area,

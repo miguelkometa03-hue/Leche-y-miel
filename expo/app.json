@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0D0D0D"
     },
     "ios": {
       "supportsTablet": false,
@@ -25,7 +25,17 @@
       "package": "app.rork.4nwlv1q8lfeqlnesxvd9w"
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Leche y Miel",
+      "shortName": "LecheyMiel",
+      "description": "Herramienta profesional de formulación para panaderos y pasteleros",
+      "lang": "es",
+      "themeColor": "#0D0D0D",
+      "backgroundColor": "#0D0D0D",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/"
     },
     "plugins": [
       [
