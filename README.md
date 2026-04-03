@@ -1,0 +1,13 @@
+​🍯 Leche y Miel (v1) - Laboratorio de Panadería
+​Leche y Miel es una aplicación profesional diseñada para la gestión técnica y financiera de panaderías y pastelerías. A diferencia de un recetario común, esta herramienta utiliza lógica matemática avanzada para calcular porcentajes panaderos, hidratación y costos de producción en tiempo real.
+​🚀 Características Principales
+​Motor de Cálculo Panadero: Utiliza el estándar de la industria donde la harina representa el 100%, facilitando el escalado de recetas.
+​Control de Hidratación: Cálculo automático de la relación líquidos/harinas para asegurar la consistencia de la masa.
+​Gestión de Costos: Desglose detallado del costo por ingrediente, costo total por pieza y sugerencia de precio de venta basada en márgenes de ganancia.
+​Planificador de Producción: Sistema de gestión para organizar piezas, peso total y estado de las tareas (Pendiente/En Proceso) por fecha.
+​Fichas Técnicas: Generación de procesos detallados (amasado, reposo, fermentación, horneado) para estandarizar la calidad.
+​Experiencia PWA: Aplicación web progresiva instalable en dispositivos móviles para uso sin conexión en el taller.
+​🛠️ Tecnologías Utilizadas
+​Framework: Expo / React Native (Web).
+​Lenguaje: TypeScript para un código robusto y sin errores.
+​Arquitectura: PWA (Progressive Web App) optimizada para móviles.
