@@ -11,3 +11,16 @@
 ​Framework: Expo / React Native (Web).
 ​Lenguaje: TypeScript para un código robusto y sin errores.
 ​Arquitectura: PWA (Progressive Web App) optimizada para móviles.
+​📦 Instalación y Desarrollo
+​Para ejecutar este proyecto de forma local:
+1. Clona el repositorio
+git clone https://github.com/miguelkometa03-hue/Leche-y-miel.git
+2. instala las dependencias
+npm install
+3. Inicia el servidor de desarrollo
+npx expo start
+4. Para generar la versión web instalable
+npx expo export:web
+📝 Notas de Versión
+​La versión actual incluye la configuración final de manifiesto y service workers para un rendimiento profesional en navegadores móviles.
+​Desarrollado por Miguel Ángel Digital.
