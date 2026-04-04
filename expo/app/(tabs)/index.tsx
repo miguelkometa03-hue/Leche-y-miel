@@ -1197,12 +1197,11 @@ const styles = StyleSheet.create({
     minHeight: 32,
   },
   dualInputWrap: {
-    width: 65,
+    width: 76,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.light.backgroundTertiary,
     borderRadius: 6,
-    overflow: "hidden",
   },
   ingNumInput: {
     flex: 1,
