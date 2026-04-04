@@ -41,7 +41,7 @@
       [
         "expo-router",
         {
-          "origin": "https://rork.com/"
+          "origin": "https://lecheymielv1.netlify.app/"
         }
       ],
       "expo-font",
