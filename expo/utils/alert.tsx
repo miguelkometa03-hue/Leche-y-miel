@@ -62,13 +62,13 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.spring(scaleAnim, {
           toValue: 1,
           friction: 8,
           tension: 100,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
     },
@@ -81,12 +81,12 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 150,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(scaleAnim, {
           toValue: 0.9,
           duration: 150,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start(() => {
         setAlert((prev) => ({ ...prev, visible: false }));
