@@ -578,7 +578,7 @@ export default function CalculatorScreen() {
                     value={
                       ing.inputMode === "grams"
                         ? (ing.grams > 0 ? formatDecimal(ing.grams) : "")
-                        : (ing.percentage > 0 ? formatDecimal(ing.percentage) : "")
+                        : formatDecimal(ing.percentage)
                     }
                     onChangeText={(v) => {
                       if (ing.inputMode === "grams") {
