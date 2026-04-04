@@ -138,8 +138,8 @@ export default function CalculatorScreen() {
   useEffect(() => {
     if (result.totalWeight > 0) {
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.02, duration: 100, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.02, duration: 100, useNativeDriver: false }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 100, useNativeDriver: false }),
       ]).start();
     }
   }, [result.totalWeight, pulseAnim]);
