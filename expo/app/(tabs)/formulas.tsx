@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Alert,
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,7 +23,8 @@ import {
   Edit3,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync, notificationAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 
 import Colors from "@/constants/colors";
 import { formatCurrency } from "@/constants/appConfig";
@@ -63,14 +63,14 @@ export default function FormulasScreen() {
 
   const handleDelete = useCallback(
     (id: string, name: string) => {
-      Alert.alert("Eliminar", `¿Eliminar "${name}"?`, [
+      showAlert("Eliminar", `¿Eliminar "${name}"?`, [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Eliminar",
           style: "destructive",
           onPress: () => {
             deleteFormula(id);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            void notificationAsync("Warning");
           },
         },
       ]);
@@ -80,10 +80,10 @@ export default function FormulasScreen() {
 
   const handleDuplicate = useCallback(
     (id: string) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      void impactAsync("Medium");
       const newId = duplicateFormula(id);
       if (newId) {
-        Alert.alert("Duplicada", "Fórmula copiada exitosamente");
+        showAlert("Duplicada", "Fórmula copiada exitosamente");
       }
     },
     [duplicateFormula]
@@ -91,7 +91,7 @@ export default function FormulasScreen() {
 
   const handleEdit = useCallback(
     (id: string) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      void impactAsync("Medium");
       router.push(`/?editId=${id}`);
     },
     [router]
@@ -211,7 +211,7 @@ export default function FormulasScreen() {
                 </View>
                 <TouchableOpacity
                   onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    void impactAsync("Light");
                     toggleFavorite(formula.id);
                   }}
                   hitSlop={8}

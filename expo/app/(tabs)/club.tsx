@@ -29,7 +29,7 @@ import {
   ArrowRightLeft,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync } from "@/utils/haptics";
 
 import Colors from "@/constants/colors";
 import useAppStore from "@/store/useAppStore";
@@ -79,7 +79,7 @@ export default function ClubScreen() {
 
   const handlePublish = useCallback(() => {
     if (!newPost.trim()) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     const post: FeedPost = {
       id: `post-${Date.now()}`,
       authorId: userProfile.id,
@@ -106,12 +106,12 @@ export default function ClubScreen() {
   }, [newPost, postType, userProfile, addPost]);
 
   const handleReaction = useCallback((postId: string, reactionType: ReactionType) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     reactToPost(postId, reactionType);
   }, [reactToPost]);
 
   const toggleReactions = useCallback((postId: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     if (showReactionsFor === postId) {
       Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
         setShowReactionsFor(null);

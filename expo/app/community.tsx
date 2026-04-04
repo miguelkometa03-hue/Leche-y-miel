@@ -7,7 +7,6 @@ import {
   TextInput,
   Image,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -22,7 +21,8 @@ import {
   User,
 } from "lucide-react-native";
 import { useRouter, Stack } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 
 import Colors from "@/constants/colors";
 import { formatCurrency } from "@/constants/appConfig";
@@ -57,7 +57,7 @@ export default function CommunityScreen() {
 
   const handleDownload = useCallback(
     (cf: CommunityFormula) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      void impactAsync("Medium");
       const newFormula: SavedFormula = {
         ...cf.formula,
         id: `imported-${Date.now()}`,
@@ -69,14 +69,14 @@ export default function CommunityScreen() {
       };
       addFormula(newFormula);
       downloadCommunityFormula(cf.id);
-      Alert.alert("Descargada", `"${cf.formula.name}" se agregó a tus fórmulas`);
+      showAlert("Descargada", `"${cf.formula.name}" se agregó a tus fórmulas`);
     },
     [addFormula, downloadCommunityFormula]
   );
 
   const handleLike = useCallback(
     (id: string) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void impactAsync("Light");
       likeCommunityFormula(id);
     },
     [likeCommunityFormula]

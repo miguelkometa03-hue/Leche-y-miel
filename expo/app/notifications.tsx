@@ -17,7 +17,7 @@ import {
   CheckCheck,
 } from "lucide-react-native";
 import { useRouter, Stack } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync } from "@/utils/haptics";
 
 import Colors from "@/constants/colors";
 import useAppStore from "@/store/useAppStore";
@@ -54,7 +54,7 @@ export default function NotificationsScreen() {
 
   const handleTap = useCallback(
     (notification: Notification) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void impactAsync("Light");
       if (!notification.read) {
         markNotificationRead(notification.id);
       }
@@ -68,7 +68,7 @@ export default function NotificationsScreen() {
   );
 
   const handleMarkAll = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     markAllNotificationsRead();
   }, [markAllNotificationsRead]);
 

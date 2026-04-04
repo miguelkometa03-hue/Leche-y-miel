@@ -24,7 +24,7 @@ import {
   Globe,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync } from "@/utils/haptics";
 
 import Colors from "@/constants/colors";
 import { AVAILABLE_CURRENCIES, type CurrencyCode } from "@/constants/appConfig";
@@ -37,7 +37,7 @@ export default function SettingsScreen() {
 
   const handleCurrencyChange = useCallback(
     (code: CurrencyCode) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void impactAsync("Light");
       setCurrency(code);
     },
     [setCurrency]

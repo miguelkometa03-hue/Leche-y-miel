@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -18,7 +17,8 @@ import {
   BarChart3,
 } from "lucide-react-native";
 import { useRouter, Stack } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 
 import Colors from "@/constants/colors";
 import { formatCurrency } from "@/constants/appConfig";
@@ -79,16 +79,16 @@ export default function PriceHistoryScreen() {
 
   const handleAddEntry = useCallback(() => {
     if (!newIngName.trim()) {
-      Alert.alert("Error", "Ingresa el nombre del ingrediente");
+      showAlert("Error", "Ingresa el nombre del ingrediente");
       return;
     }
     const price = parseFloat(newPrice);
     if (isNaN(price) || price <= 0) {
-      Alert.alert("Error", "Ingresa un precio válido");
+      showAlert("Error", "Ingresa un precio válido");
       return;
     }
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     const entry: PriceHistoryEntry = {
       id: `ph-${Date.now()}`,
       ingredientName: newIngName.trim(),
@@ -99,7 +99,7 @@ export default function PriceHistoryScreen() {
     setNewIngName("");
     setNewPrice("");
     setShowAddForm(false);
-    Alert.alert("Registrado", "Precio agregado al historial");
+    showAlert("Registrado", "Precio agregado al historial");
   }, [newIngName, newPrice, addPriceEntry]);
 
   return (

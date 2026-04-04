@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Alert,
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,7 +22,8 @@ import {
   CakeSlice,
   Scale,
 } from "lucide-react-native";
-import * as Haptics from "expo-haptics";
+import { impactAsync, notificationAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 
 import Colors from "@/constants/colors";
 import { formatCurrency } from "@/constants/appConfig";
@@ -98,7 +98,7 @@ export default function PlannerScreen() {
 
   const handleAddItem = useCallback(() => {
     if (!selectedFormulaId) {
-      Alert.alert("Selecciona una fórmula", "Elige qué producir");
+      showAlert("Selecciona una fórmula", "Elige qué producir");
       return;
     }
     const formula = formulas.find((f) => f.id === selectedFormulaId);
@@ -106,7 +106,7 @@ export default function PlannerScreen() {
 
     const pcs = parseInt(planPieces, 10) || 0;
     if (pcs <= 0) {
-      Alert.alert("Piezas inválidas", "Ingresa un número de piezas");
+      showAlert("Piezas inválidas", "Ingresa un número de piezas");
       return;
     }
 
@@ -125,7 +125,7 @@ export default function PlannerScreen() {
       createdAt: new Date().toISOString(),
     };
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     addProductionItem(item);
     setShowAddForm(false);
     setSelectedFormulaId(null);
@@ -134,7 +134,7 @@ export default function PlannerScreen() {
 
   const handleToggleStatus = useCallback(
     (item: ProductionPlanItem) => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void impactAsync("Light");
       const nextStatus =
         item.status === "pendiente"
           ? "en_proceso"
@@ -154,7 +154,7 @@ export default function PlannerScreen() {
           totalCost: item.totalCost,
           totalWeight: item.totalWeight,
         });
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void notificationAsync("Success");
       }
     },
     [updateProductionItem, addProductionHistory]
@@ -162,13 +162,13 @@ export default function PlannerScreen() {
 
   const handleDeleteItem = useCallback(
     (id: string) => {
-      Alert.alert("Eliminar", "¿Eliminar este item de producción?", [
+      showAlert("Eliminar", "¿Eliminar este item de producción?", [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Eliminar",
           style: "destructive",
           onPress: () => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            void impactAsync("Medium");
             deleteProductionItem(id);
           },
         },

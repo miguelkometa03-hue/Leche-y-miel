@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -28,7 +27,8 @@ import {
   Thermometer,
   FlaskConical,
 } from "lucide-react-native";
-import * as Haptics from "expo-haptics";
+import { impactAsync, notificationAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 import { useLocalSearchParams } from "expo-router";
 
 import Colors from "@/constants/colors";
@@ -145,7 +145,7 @@ export default function CalculatorScreen() {
   }, [result.totalWeight, pulseAnim]);
 
   const handleAreaSwitch = useCallback((newArea: AreaType) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     setArea(newArea);
     if (newArea === "panaderia") {
       setIngredients([createFlourIngredient(), createWaterIngredient()]);
@@ -161,12 +161,12 @@ export default function CalculatorScreen() {
   }, []);
 
   const handleAddIngredient = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     setIngredients((prev) => [...prev, createDefaultIngredient(area)]);
   }, [area]);
 
   const handleRemoveIngredient = useCallback((id: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     setIngredients((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
@@ -214,7 +214,7 @@ export default function CalculatorScreen() {
   );
 
   const handleToggleInputMode = useCallback((id: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     setIngredients((prev) =>
       prev.map((ing) =>
         ing.id === id
@@ -225,7 +225,7 @@ export default function CalculatorScreen() {
   }, []);
 
   const handleToggleFlour = useCallback((id: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     setIngredients((prev) =>
       prev.map((ing) =>
         ing.id === id ? { ...ing, isFlour: !ing.isFlour, isLiquid: false } : ing
@@ -234,7 +234,7 @@ export default function CalculatorScreen() {
   }, []);
 
   const handleToggleLiquid = useCallback((id: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     setIngredients((prev) =>
       prev.map((ing) =>
         ing.id === id ? { ...ing, isLiquid: !ing.isLiquid, isFlour: false } : ing
@@ -266,7 +266,7 @@ export default function CalculatorScreen() {
   );
 
   const handleReset = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     setFormulaName("");
     setEditingFormulaId(null);
     if (area === "panaderia") {
@@ -285,15 +285,15 @@ export default function CalculatorScreen() {
 
   const handleSave = useCallback(() => {
     if (!formulaName.trim()) {
-      Alert.alert("Nombre requerido", "Ingresa un nombre para tu fórmula");
+      showAlert("Nombre requerido", "Ingresa un nombre para tu fórmula");
       return;
     }
     if (ingredients.length === 0) {
-      Alert.alert("Sin ingredientes", "Agrega al menos un ingrediente");
+      showAlert("Sin ingredientes", "Agrega al menos un ingrediente");
       return;
     }
     if (result.totalWeight <= 0) {
-      Alert.alert("Sin peso", "Define piezas y peso por pieza");
+      showAlert("Sin peso", "Define piezas y peso por pieza");
       return;
     }
 
@@ -322,8 +322,8 @@ export default function CalculatorScreen() {
         costPerUnit: result.costPerUnit,
         tags: [area],
       });
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Actualizada", `"${formulaName}" actualizada exitosamente`);
+      void notificationAsync("Success");
+      showAlert("Actualizada", `"${formulaName}" actualizada exitosamente`);
     } else {
       const saved: SavedFormula = {
         id: `formula-${Date.now()}`,
@@ -346,8 +346,8 @@ export default function CalculatorScreen() {
         updatedAt: new Date().toISOString(),
       };
       addFormula(saved);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Guardada", `"${formulaName}" guardada en tus fórmulas`);
+      void notificationAsync("Success");
+      showAlert("Guardada", `"${formulaName}" guardada en tus fórmulas`);
     }
 
     setLabDraft(null);
@@ -355,7 +355,7 @@ export default function CalculatorScreen() {
   }, [formulaName, ingredients, result, area, steps, piecesNum, weightNum, addFormula, updateFormula, editingFormulaId, handleReset, setLabDraft]);
 
   const handleLoadTemplate = useCallback((template: PrebuiltFormula) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     setFormulaName(template.name);
     setArea(template.area);
     setEditingFormulaId(null);

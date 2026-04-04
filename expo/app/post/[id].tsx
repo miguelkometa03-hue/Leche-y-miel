@@ -17,7 +17,7 @@ import {
   ThumbsUp,
 } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync } from "@/utils/haptics";
 
 import Colors from "@/constants/colors";
 import useAppStore from "@/store/useAppStore";
@@ -51,13 +51,13 @@ export default function PostDetailScreen() {
 
   const handleReaction = useCallback((reactionType: ReactionType) => {
     if (!post) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     reactToPost(post.id, reactionType);
   }, [post, reactToPost]);
 
   const handleComment = useCallback(() => {
     if (!post || !commentText.trim()) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     const comment: PostComment = {
       id: `comment-${Date.now()}`,
       authorId: userProfile.id,
@@ -76,7 +76,7 @@ export default function PostDetailScreen() {
 
   const handleLikeComment = useCallback((commentId: string) => {
     if (!post) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void impactAsync("Light");
     likeComment(post.id, commentId);
   }, [post, likeComment]);
 

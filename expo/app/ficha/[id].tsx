@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Share,
-  Alert,
   TextInput,
   Platform,
   Image,
@@ -31,7 +30,8 @@ import {
   Camera,
 } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync, notificationAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 
 import * as ImagePicker from "expo-image-picker";
 
@@ -71,13 +71,13 @@ export default function FichaDetailScreen() {
       name: editName.trim(),
       description: editDesc.trim(),
     });
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void notificationAsync("Success");
     setEditing(false);
   }, [formula, editName, editDesc, updateFormula]);
 
   const handleEditInLab = useCallback(() => {
     if (!formula) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     router.push(`/?editId=${formula.id}`);
   }, [formula, router]);
 
@@ -150,7 +150,7 @@ export default function FichaDetailScreen() {
 
   const handleDelete = useCallback(() => {
     if (!formula) return;
-    Alert.alert("Eliminar", `¿Eliminar "${formula.name}"?`, [
+    showAlert("Eliminar", `¿Eliminar "${formula.name}"?`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
@@ -174,7 +174,7 @@ export default function FichaDetailScreen() {
       });
       if (!result.canceled && result.assets[0]) {
         updateFormula(formula.id, { imageUrl: result.assets[0].uri });
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        void notificationAsync("Success");
       }
     } catch {
     }
@@ -182,10 +182,10 @@ export default function FichaDetailScreen() {
 
   const handleDuplicate = useCallback(() => {
     if (!formula) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
     const newId = duplicateFormula(formula.id);
     if (newId) {
-      Alert.alert("Duplicada", "Fórmula copiada. La encontrarás en tus fórmulas.");
+      showAlert("Duplicada", "Fórmula copiada. La encontrarás en tus fórmulas.");
     }
   }, [formula, duplicateFormula]);
 
@@ -267,9 +267,7 @@ export default function FichaDetailScreen() {
                   <TouchableOpacity
                     style={styles.headerBtn}
                     onPress={() => {
-                      void Haptics.impactAsync(
-                        Haptics.ImpactFeedbackStyle.Light
-                      );
+                      void impactAsync("Light");
                       toggleFavorite(formula.id);
                     }}
                   >

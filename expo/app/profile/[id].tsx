@@ -7,7 +7,6 @@ import {
   TextInput,
   Image,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -25,7 +24,8 @@ import {
   ChevronRight,
 } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { notificationAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 
 import Colors from "@/constants/colors";
 import useAppStore from "@/store/useAppStore";
@@ -74,10 +74,10 @@ export default function ProfileScreen() {
 
   const handleSaveEdit = useCallback(() => {
     if (!editData.name.trim()) {
-      Alert.alert("Error", "El nombre es requerido");
+      showAlert("Error", "El nombre es requerido");
       return;
     }
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void notificationAsync("Success");
     updateProfile({
       name: editData.name.trim(),
       professionalTitle: editData.professionalTitle.trim() || undefined,

@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -17,7 +16,8 @@ import {
   Lock,
 } from "lucide-react-native";
 import { useRouter, Stack } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { impactAsync, notificationAsync } from "@/utils/haptics";
+import { showAlert } from "@/utils/alert";
 
 import Colors from "@/constants/colors";
 import useAppStore from "@/store/useAppStore";
@@ -30,10 +30,10 @@ export default function SubscriptionScreen() {
 
   const handleSelectPlan = useCallback((tier: SubscriptionTier) => {
     if (tier === subscription) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void impactAsync("Medium");
 
     if (tier === "free") {
-      Alert.alert(
+      showAlert(
         "Cambiar a Básico",
         "¿Estás seguro de que deseas cambiar al plan gratuito? Perderás acceso a funciones premium.",
         [
@@ -42,7 +42,7 @@ export default function SubscriptionScreen() {
             text: "Confirmar",
             onPress: () => {
               setSubscription(tier);
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              void notificationAsync("Success");
             },
           },
         ]
@@ -50,7 +50,7 @@ export default function SubscriptionScreen() {
       return;
     }
 
-    Alert.alert(
+    showAlert(
       `Activar Plan ${getTierLabel(tier)}`,
       "En una versión futura se habilitará el pago real. Por ahora puedes explorar las funciones.",
       [
@@ -59,8 +59,8 @@ export default function SubscriptionScreen() {
           text: "Activar demo",
           onPress: () => {
             setSubscription(tier);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert("Plan activado", `Ahora tienes acceso al plan ${getTierLabel(tier)}`);
+            void notificationAsync("Success");
+            showAlert("Plan activado", `Ahora tienes acceso al plan ${getTierLabel(tier)}`);
           },
         },
       ]
