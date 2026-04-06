@@ -1177,25 +1177,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
+    minHeight: Platform.OS ==='web' ? '100vh':'100%',
   },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 10,
+    paddingTop: 20,
+    paddingBottom: 20,
+    backgroundColor: Colors.light.border,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
   },
   topBarLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
   appName: {
-    fontSize: 16,
-    fontWeight: "800" as const,
+    fontSize: 22,
+    fontWeight: "900" as const,
     color: Colors.light.primary,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   topBarActions: {
     flexDirection: "row",
@@ -1228,7 +1232,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingBottom: 40,
+    flexGrow: 1,
   },
   editBanner: {
     flexDirection: "row",
