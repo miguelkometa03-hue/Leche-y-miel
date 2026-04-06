@@ -110,6 +110,48 @@ export default function CalculatorScreen() {
     }
     return base;
   }, [productionMode, piecesNum, totalMassNum, weightNum, bakingLossEnabled, area, bakingLossNum]);
+   
+const calcularHidratacionReal = () => {
+  let gramosHarinaTotal = 0;
+  let liquidoEfectivoTotal = 0;
+
+  ingredients.forEach(ing => {
+    const nombre = ing.name.toLowerCase();
+    const gramos = ing.grams || 0;
+
+    if (ing.isFlour) {
+      gramosHarinaTotal += gramos;
+    }
+
+    // Coeficientes de absorción según el ingrediente
+    if (ing.isLiquid || nombre.includes("agua")) {
+      liquidoEfectivoTotal += gramos * 1.0;
+    } else if (nombre.includes("leche")) {
+      liquidoEfectivoTotal += gramos * 0.9;
+    } else if (nombre.includes("huevo")) {
+      liquidoEfectivoTotal += gramos * 0.75;
+    } else if (nombre.includes("margarina") || nombre.includes("mantequilla")) {
+      liquidoEfectivoTotal += gramos * 0.40;
+    } else if (nombre.includes("yogur") || nombre.includes("suero")) {
+      liquidoEfectivoTotal += gramos * 0.85;
+    } else if (nombre.includes("levadura") || nombre.includes("levadura fresca")) {
+      liquidoEfectivoTotal += gramos * 0.90;
+    } else if (nombre.includes("aceite")) {
+      liquidoEfectivoTotal += gramos * 0.95;
+    } else if (
+      nombre.includes("jugo") || 
+      nombre.includes("sumo de limon") || 
+      nombre.includes("agua de")
+    ) {
+      liquidoEfectivoTotal += gramos * 0.95;
+    }
+  });
+
+  if (gramosHarinaTotal === 0) return 0;
+  return ((liquidoEfectivoTotal / gramosHarinaTotal) * 100).toFixed(1);
+};
+
+const hidratacionReal = calcularHidratacionReal();
 
   const result = useMemo(() => {
     return calculateFormula(area, ingredients, piecesNum, rawWeightPerPiece);
@@ -454,8 +496,8 @@ export default function CalculatorScreen() {
 
   // ── FIX #8: Anchos responsivos ───────────────────────────────────────────
   const isSmallScreen = Platform.OS === "web";
-  const colPercent = isSmallScreen ? 58 : 65;
-  const colCost = isSmallScreen ? 52 : 60;
+  const colPercent = isSmallScreen ? 85 : 95;
+  const colCost = isSmallScreen ? 65 : 75;
   const colType = isSmallScreen ? 32 : 36;
   const colDelete = isSmallScreen ? 24 : 28;
 
@@ -670,9 +712,10 @@ export default function CalculatorScreen() {
                     onPress={() => handleToggleInputMode(ing.id)}
                     hitSlop={4}
                   >
-                    <Text style={styles.modeToggleText}>
-                      {ing.inputMode === "grams" ? "g" : "%"}
-                    </Text>
+                    <Text style={[styles.modeToggleText, { fontSize: 14, color: Colors.light.primary, fontWeight: '800' }]}>
+                    {ing.inputMode === "grams" ? " g" : " %"}
+                  </Text>
+
                   </TouchableOpacity>
                 </View>
                 <View style={[styles.ingTypeCol, { width: colType }]}>
@@ -913,10 +956,11 @@ export default function CalculatorScreen() {
               <View style={styles.statsRow}>
                 {area === "panaderia" && (
                   <View style={styles.statBox}>
-                    <Droplets size={18} color={Colors.light.water} />
-                    <Text style={styles.statValue}>{result.hydration}%</Text>
-                    <Text style={styles.statLabel}>Hidratación</Text>
-                  </View>
+                  <Droplets size={18} color={Colors.light.water} />
+                  <Text style={styles.statValue}>{hidratacionReal}%</Text>
+                  <Text style={styles.statLabel}>Hidratación Real</Text>
+                </View>
+
                 )}
                 <View style={styles.statBox}>
                   <Scale size={18} color={Colors.light.primary} />
