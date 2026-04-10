@@ -111,53 +111,32 @@ export default function CalculatorScreen() {
     return base;
   }, [productionMode, piecesNum, totalMassNum, weightNum, bakingLossEnabled, area, bakingLossNum]);
    
-const calcularHidratacionReal = () => {
-  let gramosHarinaTotal = 0;
-  let liquidoEfectivoTotal = 0;
-
-  ingredients.forEach(ing => {
-    const nombre = ing.name.toLowerCase();
-    const gramos = ing.grams || 0;
-
-    if (ing.isFlour) {
-      gramosHarinaTotal += gramos;
-    }
-
-    // Coeficientes de absorción según el ingrediente
-    if (ing.isLiquid || nombre.includes("agua")) {
-      liquidoEfectivoTotal += gramos * 1.0;
-    } else if (nombre.includes("leche")) {
-      liquidoEfectivoTotal += gramos * 0.9;
-    } else if (nombre.includes("huevo")) {
-      liquidoEfectivoTotal += gramos * 0.75;
-    } else if (nombre.includes("margarina") || nombre.includes("mantequilla")) {
-      liquidoEfectivoTotal += gramos * 0.40;
-    } else if (nombre.includes("yogur") || nombre.includes("suero")) {
-      liquidoEfectivoTotal += gramos * 0.85;
-    } else if (nombre.includes("levadura") || nombre.includes("levadura fresca")) {
-      liquidoEfectivoTotal += gramos * 0.90;
-    } else if (nombre.includes("aceite")) {
-      liquidoEfectivoTotal += gramos * 0.95;
-    } else if (
-      nombre.includes("jugo") || 
-      nombre.includes("sumo de limon") || 
-      nombre.includes("agua de")
-    ) {
-      liquidoEfectivoTotal += gramos * 0.95;
-    }
-  });
-
-  if (gramosHarinaTotal === 0) return 0;
-  return ((liquidoEfectivoTotal / gramosHarinaTotal) * 100).toFixed(1);
-};
-
-const hidratacionReal = calcularHidratacionReal();
+  const hidratacionReal = useMemo(() => {
+    let gramosHarinaTotal = 0;
+    let liquidoEfectivoTotal = 0;
+    ingredients.forEach(ing => {
+      const nombre = ing.name.toLowerCase();
+      const gramos = ing.grams || 0;
+      if (ing.isFlour) { gramosHarinaTotal += gramos; }
+      if (ing.isLiquid || nombre.includes('agua')) { liquidoEfectivoTotal += gramos * 1.0; }
+      else if (nombre.includes('leche')) { liquidoEfectivoTotal += gramos * 0.9; }
+      else if (nombre.includes('huevo')) { liquidoEfectivoTotal += gramos * 0.75; }
+      else if (nombre.includes('margarina') || nombre.includes('mantequilla')) { liquidoEfectivoTotal += gramos * 0.40; }
+      else if (nombre.includes('yogur') || nombre.includes('suero')) { liquidoEfectivoTotal += gramos * 0.85; }
+      else if (nombre.includes('levadura')) { liquidoEfectivoTotal += gramos * 0.90; }
+      else if (nombre.includes('aceite')) { liquidoEfectivoTotal += gramos * 0.95; }
+      else if (nombre.includes('jugo') || nombre.includes('limon') || nombre.includes('agua de')) { liquidoEfectivoTotal += gramos * 0.95; }
+    });
+    if (gramosHarinaTotal === 0) return '0';
+    return ((liquidoEfectivoTotal / gramosHarinaTotal) * 100).toFixed(1);
+  }, [ingredients]);
 
   const result = useMemo(() => {
     return calculateFormula(area, ingredients, piecesNum, rawWeightPerPiece);
   }, [area, ingredients, piecesNum, rawWeightPerPiece]);
 
   const loadFormulaForEdit = useCallback((formula: SavedFormula) => {
+    setLabDraft(null);
     setEditingFormulaId(formula.id);
     setFormulaName(formula.name);
     setArea(formula.area);
@@ -178,7 +157,7 @@ const hidratacionReal = calcularHidratacionReal();
     setWeightPerPiece(String(formula.weightPerPiece));
     setSteps(formula.steps.map((s) => ({ ...s })));
     setShowSteps(formula.steps.length > 0);
-  }, []);
+  }, [setLabDraft]);
 
   useEffect(() => {
     if (params.editId && params.editId !== editingFormulaId) {
@@ -692,7 +671,7 @@ const hidratacionReal = calcularHidratacionReal();
                     value={
                       ing.inputMode === "grams"
                         ? (ing.grams > 0 ? formatDecimal(ing.grams) : "")
-                        : (ing.percentage > 0 ? formatDecimal(ing.percentage) : "")
+                        : formatDecimal(ing.percentage)
                     }
                     onChangeText={(v) => {
                       const clean = sanitizeDecimal(v);
@@ -1221,7 +1200,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
-    minHeight: Platform.OS ==='web' ? '100vh':'100%',
+
   },
   topBar: {
     flexDirection: "row",
@@ -1452,7 +1431,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Colors.light.backgroundTertiary,
     borderRadius: 12,
-    overflow: "hidden",
     borderWidth: 1,
   },
   ingNumInput: {
@@ -1529,7 +1507,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.light.border,
-    borderStyle: "dashed",
+    borderStyle: Platform.OS === 'web' ? 'solid' : 'dashed',
   },
   addIngText: {
     fontSize: 13,
@@ -1632,7 +1610,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: Colors.light.warningMuted ?? Colors.light.border,
+    borderColor: Colors.light.warning,
   },
   lossHeader: {
     flexDirection: "row",

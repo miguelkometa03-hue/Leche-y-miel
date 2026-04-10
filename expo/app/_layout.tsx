@@ -8,7 +8,9 @@ import { StatusBar } from "expo-status-bar";
 import Colors from "@/constants/colors";
 import { AlertProvider } from "@/utils/alert";
 
-void SplashScreen.preventAutoHideAsync();
+if (typeof window === 'undefined' || !('document' in globalThis)) {
+  void SplashScreen.preventAutoHideAsync();
+}
 
 const queryClient = new QueryClient();
 
@@ -93,7 +95,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useEffect(() => {
     void (async () => {
-      await SplashScreen.hideAsync();
+      try { await SplashScreen.hideAsync(); } catch (_) {}
     })();
   }, []);
 
@@ -101,7 +103,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AlertProvider>
-          <StatusBar style="light" />
+          <StatusBar style="auto" />
           <RootLayoutNav />
         </AlertProvider>
       </GestureHandlerRootView>
