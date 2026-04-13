@@ -9,7 +9,9 @@ import Colors from "@/constants/colors";
 import { AlertProvider } from "@/utils/alert";
 
 if (typeof window === 'undefined' || !('document' in globalThis)) {
+  if (typeof window === 'undefined' || !('document' in globalThis)) {
   void SplashScreen.preventAutoHideAsync();
+}
 }
 
 const queryClient = new QueryClient();
@@ -95,7 +97,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useEffect(() => {
     void (async () => {
-      try { await SplashScreen.hideAsync(); } catch (_) {}
+      try { try { await SplashScreen.hideAsync(); } catch (_) {} } catch (_) {}
     })();
   }, []);
 

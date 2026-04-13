@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Leche y Miel",
+    "name": "Pastry-Pro",
     "slug": "4nwlv1q8lfeqlnesxvd9w",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -26,9 +26,9 @@
     },
     "web": {
       "favicon": "./assets/images/favicon-32.png",
-      "name": "Leche y Miel",
-      "shortName": "LecheyMiel",
-      "description": "Herramienta profesional de formulación para panaderos y pasteleros",
+      "name": "Pastry-Pro",
+      "shortName": "PastryPro",
+      "description": "Herramienta profesional para panaderías y pastelerías con IA",
       "lang": "es",
       "themeColor": "#0D0D0D",
       "backgroundColor": "#0D0D0D",
@@ -46,7 +46,7 @@
       [
         "expo-router",
         {
-          "origin": "https://lecheymielv1.netlify.app/"
+          "origin": "https://pastry-pro.pages.dev/"
         }
       ],
       "expo-font",
@@ -54,6 +54,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "geminiApiKey": "${EXPO_PUBLIC_GEMINI_API_KEY}"
     }
   }
 }
